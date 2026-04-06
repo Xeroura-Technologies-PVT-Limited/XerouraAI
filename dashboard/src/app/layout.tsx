@@ -6,8 +6,8 @@ import { NotificationProvider } from "@/lib/notifications";
 import { LayoutShell } from "@/components/LayoutShell";
 
 export const metadata: Metadata = {
-  title: "Support Agent Dashboard",
-  description: "AI Support Agent Admin Dashboard",
+  title: "Xeroura AI Dashboard",
+  description: "Xeroura AI Admin Dashboard",
 };
 
 export default function RootLayout({

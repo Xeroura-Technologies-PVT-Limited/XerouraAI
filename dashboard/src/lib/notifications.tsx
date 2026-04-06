@@ -172,9 +172,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unread = notifications.length;
     if (unread > 0) {
-      document.title = `(${unread}) Support Agent Dashboard`;
+      document.title = `(${unread}) Xeroura AI Dashboard`;
     } else {
-      document.title = "Support Agent Dashboard";
+      document.title = "Xeroura AI Dashboard";
     }
   }, [notifications]);
 

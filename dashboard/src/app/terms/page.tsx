@@ -11,7 +11,7 @@ export default function TermsOfServicePage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </div>
-          <span className="text-sm font-bold text-gray-900 dark:text-white">Support AI</span>
+          <span className="text-sm font-bold text-gray-900 dark:text-white">Xeroura AI</span>
         </Link>
         <Link href="/" className="text-xs text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">&larr; Back to home</Link>
       </nav>
@@ -22,11 +22,11 @@ export default function TermsOfServicePage() {
 
         <div className="prose-style space-y-8">
           <Section title="1. Acceptance of Terms">
-            <p>By accessing or using Support AI (&quot;the Service&quot;), you agree to be bound by these Terms of Service. If you do not agree, do not use the Service.</p>
+            <p>By accessing or using Xeroura AI (&quot;the Service&quot;), you agree to be bound by these Terms of Service. If you do not agree, do not use the Service.</p>
           </Section>
 
           <Section title="2. Description of Service">
-            <p>Support AI is a self-hosted, open-source AI customer support platform that:</p>
+            <p>Xeroura AI is a self-hosted, open-source AI customer support platform that:</p>
             <ul>
               <li>Receives customer messages from WhatsApp, Telegram, Email, and Web Chat.</li>
               <li>Uses AI (Claude by Anthropic) to classify, route, and respond to support tickets.</li>
@@ -77,9 +77,9 @@ export default function TermsOfServicePage() {
 
           <Section title="7. Intellectual Property">
             <ul>
-              <li>Support AI is open-source software. The source code is available under its respective license.</li>
+              <li>Xeroura AI is open-source software. The source code is available under its respective license.</li>
               <li>You retain ownership of all data you input into the Service (conversations, knowledge base, etc.).</li>
-              <li>The &quot;Support AI&quot; name and branding are used for the CodeWithMuh YouTube tutorial project.</li>
+              <li>The &quot;Xeroura AI&quot; name and branding are used for the CodeWithMuh YouTube tutorial project.</li>
             </ul>
           </Section>
 
@@ -94,7 +94,7 @@ export default function TermsOfServicePage() {
           </Section>
 
           <Section title="9. Limitation of Liability">
-            <p>To the maximum extent permitted by law, Support AI and its contributors shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of the Service.</p>
+            <p>To the maximum extent permitted by law, Xeroura AI and its contributors shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of the Service.</p>
           </Section>
 
           <Section title="10. Changes to Terms">

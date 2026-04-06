@@ -53,7 +53,7 @@ const SECTIONS: { title: string; icon: string; steps: Step[] }[] = [
     steps: [
       {
         title: "Clone the repository",
-        content: <Code>{`git clone https://github.com/codewithmuh/ai-support-agent.git\ncd ai-support-agent`}</Code>,
+        content: <Code>{`git clone https://github.com/codewithmuh/xeroura-ai.git\ncd xeroura-ai`}</Code>,
       },
       {
         title: "Configure environment variables",
@@ -671,7 +671,7 @@ export default function DocsPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Documentation</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Setup, configure, and start using the AI Support Agent</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Setup, configure, and start using Xeroura AI</p>
           </div>
         </div>
       </div>

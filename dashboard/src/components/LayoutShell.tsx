@@ -65,7 +65,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
               </svg>
             </div>
             <div>
-              <h1 className="text-base font-bold text-gray-900 dark:text-white">Support AI</h1>
+              <h1 className="text-base font-bold text-gray-900 dark:text-white">Xeroura AI</h1>
               <p className="text-xs text-gray-400 dark:text-gray-500">Agent Dashboard</p>
             </div>
           </div>

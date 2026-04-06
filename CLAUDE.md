@@ -1,4 +1,4 @@
-# AI Support Agent — Multi-Channel Customer Support System
+# Xeroura AI — Multi-Channel Customer Support System
 
 ## Project Overview
 A production-ready AI customer support agent that handles WhatsApp, Email (Gmail), and Web Chat — all feeding into one AI brain. Built for a CodeWithMuh YouTube tutorial demonstrating how to replace expensive SaaS tools ($990-$1500/mo) with a self-hosted solution (~$85/mo).
@@ -21,7 +21,7 @@ The core principle: **80/20 hybrid approach** — AI handles 80% of routine tick
 
 ## Project Structure
 ```
-ai-support-agent/
+xeroura-ai/
 ├── manage.py
 ├── config/                          # Django project config
 │   ├── settings.py

@@ -37,7 +37,7 @@ export function LandingPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <span className="text-lg font-bold text-gray-900 dark:text-white">Support AI</span>
+            <span className="text-lg font-bold text-gray-900 dark:text-white">Xeroura AI</span>
           </div>
 
           <div className="hidden md:flex items-center gap-8">
@@ -133,7 +133,7 @@ export function LandingPage() {
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-white">Support AI</p>
+                  <p className="text-sm font-semibold text-white">Xeroura AI</p>
                   <div className="flex items-center gap-1.5">
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     <p className="text-[11px] text-indigo-200">Online &middot; Replies in seconds</p>
@@ -293,7 +293,7 @@ export function LandingPage() {
                 <tr className="bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-l-indigo-600">
                   <td className="px-6 py-5 text-sm font-bold text-indigo-700 dark:text-indigo-400 flex items-center gap-2">
                     <div className="w-6 h-6 rounded-lg bg-indigo-600 flex items-center justify-center"><svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div>
-                    Support AI
+                    Xeroura AI
                   </td>
                   <td className="px-6 py-5 text-lg font-bold text-indigo-700 dark:text-indigo-400">~$85/mo <span className="text-xs font-normal">total</span></td>
                   <td className="px-6 py-5 text-sm text-indigo-600 dark:text-indigo-400 font-medium">Self-hosted, unlimited agents, unlimited tickets</td>
@@ -329,7 +329,7 @@ export function LandingPage() {
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center"><svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div>
-                <span className="text-sm font-bold text-gray-900 dark:text-white">Support AI</span>
+                <span className="text-sm font-bold text-gray-900 dark:text-white">Xeroura AI</span>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">AI-powered multi-channel customer support. Handle 80% of tickets automatically.</p>
             </div>
@@ -360,7 +360,7 @@ export function LandingPage() {
             </div>
           </div>
           <div className="pt-6 border-t border-gray-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-3">
-            <p className="text-xs text-gray-400 dark:text-gray-500">&copy; {new Date().getFullYear()} Support AI. Built for <strong>CodeWithMuh</strong> YouTube tutorial.</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">&copy; {new Date().getFullYear()} Xeroura AI. Built for <strong>CodeWithMuh</strong> YouTube tutorial.</p>
             <div className="flex items-center gap-4">
               <Link href="/privacy" className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Privacy</Link>
               <Link href="/terms" className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Terms</Link>

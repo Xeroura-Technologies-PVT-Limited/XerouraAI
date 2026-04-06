@@ -44,7 +44,7 @@ export default function LoginPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <span className="text-xl font-bold text-white">Support AI</span>
+            <span className="text-xl font-bold text-white">Xeroura AI</span>
           </div>
 
           {/* Middle content */}
@@ -90,7 +90,7 @@ export default function LoginPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
-              <span className="text-lg font-bold text-gray-900 dark:text-white">Support AI</span>
+              <span className="text-lg font-bold text-gray-900 dark:text-white">Xeroura AI</span>
             </div>
           </div>
 

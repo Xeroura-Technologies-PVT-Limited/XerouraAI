@@ -1,4 +1,4 @@
-# AI Support Agent — Multi-Channel Customer Support System
+# Xeroura AI — Multi-Channel Customer Support System
 
 > Replace a 3-person support team with AI. Handles WhatsApp, Telegram, Email, and Web Chat — costs **~$85/mo** instead of $1,500+ on Intercom or Zendesk.
 
@@ -6,7 +6,7 @@ Built with Django, Claude AI (Haiku + Sonnet), PostgreSQL + pgvector, and Next.j
 
 **Full tutorial on YouTube:** [CodeWithMuh](https://youtube.com/@codewithmuh)
 
-![Support AI Dashboard](https://img.shields.io/badge/Status-Production_Ready-brightgreen) ![License](https://img.shields.io/badge/License-MIT-blue) ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white) ![Claude](https://img.shields.io/badge/AI-Claude_Sonnet-orange)
+![Xeroura AI Dashboard](https://img.shields.io/badge/Status-Production_Ready-brightgreen) ![License](https://img.shields.io/badge/License-MIT-blue) ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white) ![Claude](https://img.shields.io/badge/AI-Claude_Sonnet-orange)
 
 ---
 
@@ -113,8 +113,8 @@ Built with Django, Claude AI (Haiku + Sonnet), PostgreSQL + pgvector, and Next.j
 ### 1. Clone & Configure
 
 ```bash
-git clone https://github.com/codewithmuh/ai-support-agent.git
-cd ai-support-agent
+git clone https://github.com/codewithmuh/xeroura-ai.git
+cd xeroura-ai
 cp .env.example .env
 ```
 
@@ -377,7 +377,7 @@ vs. Intercom ($79/seat + $0.99/resolution), Zendesk ($55-115/agent), Freshdesk (
 ## Project Structure
 
 ```
-ai-support-agent/
+xeroura-ai/
 ├── config/                 # Django settings, ASGI, URLs
 ├── core/                   # AI brain (classifier, responder, RAG, guardrails, embeddings)
 ├── channels_app/           # WhatsApp, Telegram, Email, WebSocket integrations

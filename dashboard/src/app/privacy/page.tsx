@@ -11,7 +11,7 @@ export default function PrivacyPolicyPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </div>
-          <span className="text-sm font-bold text-gray-900 dark:text-white">Support AI</span>
+          <span className="text-sm font-bold text-gray-900 dark:text-white">Xeroura AI</span>
         </Link>
         <Link href="/" className="text-xs text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">&larr; Back to home</Link>
       </nav>
@@ -22,7 +22,7 @@ export default function PrivacyPolicyPage() {
 
         <div className="prose-style space-y-8">
           <Section title="1. Information We Collect">
-            <p>When you use Support AI, we may collect the following types of information:</p>
+            <p>When you use Xeroura AI, we may collect the following types of information:</p>
             <ul>
               <li><strong>Account Information:</strong> Email address, team name, and password when you create an account.</li>
               <li><strong>Customer Conversations:</strong> Messages sent and received through connected channels (WhatsApp, Telegram, Email, Web Chat) are stored to provide the support service.</li>
@@ -43,7 +43,7 @@ export default function PrivacyPolicyPage() {
           </Section>
 
           <Section title="3. Third-Party Services">
-            <p>Support AI integrates with the following third-party services:</p>
+            <p>Xeroura AI integrates with the following third-party services:</p>
             <ul>
               <li><strong>Anthropic (Claude API):</strong> Customer messages are sent to Claude for classification and response generation. See <a href="https://www.anthropic.com/privacy" target="_blank" rel="noopener noreferrer">Anthropic&apos;s Privacy Policy</a>.</li>
               <li><strong>OpenAI:</strong> Used for text embeddings (knowledge base search). See <a href="https://openai.com/privacy" target="_blank" rel="noopener noreferrer">OpenAI&apos;s Privacy Policy</a>.</li>

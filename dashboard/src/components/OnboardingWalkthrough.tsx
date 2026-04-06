@@ -167,7 +167,7 @@ function StepWelcome() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13 10V3L4 14h7v7l9-11h-7z" />
         </svg>
       </div>
-      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Welcome to Support AI!</h2>
+      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Welcome to Xeroura AI!</h2>
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
         Let&apos;s get your AI support agent up and running in 5 minutes
       </p>
