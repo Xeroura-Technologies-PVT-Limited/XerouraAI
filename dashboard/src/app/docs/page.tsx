@@ -53,7 +53,7 @@ const SECTIONS: { title: string; icon: string; steps: Step[] }[] = [
     steps: [
       {
         title: "Clone the repository",
-        content: <Code>{`git clone https://github.com/codewithmuh/xeroura-ai.git\ncd xeroura-ai`}</Code>,
+        content: <Code>{`git clone https://github.com/pawanavantsa/xeroura-ai.git\ncd xeroura-ai`}</Code>,
       },
       {
         title: "Configure environment variables",
@@ -735,7 +735,7 @@ export default function DocsPage() {
       {/* Footer */}
       <div className="mt-8 text-center py-6 border-t border-gray-100 dark:border-slate-700">
         <p className="text-xs text-gray-400 dark:text-gray-500">
-          Built for the <strong>CodeWithMuh</strong> YouTube tutorial.{" "}
+          Built for the <strong>pawanavantsa</strong> YouTube tutorial.{" "}
           <Link href="/" className="text-indigo-600 dark:text-indigo-400 hover:underline">Back to Dashboard</Link>
         </p>
       </div>

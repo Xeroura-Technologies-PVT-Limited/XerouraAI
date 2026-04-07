@@ -360,7 +360,7 @@ export function LandingPage() {
             </div>
           </div>
           <div className="pt-6 border-t border-gray-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-3">
-            <p className="text-xs text-gray-400 dark:text-gray-500">&copy; {new Date().getFullYear()} Xeroura AI. Built for <strong>CodeWithMuh</strong> YouTube tutorial.</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">&copy; {new Date().getFullYear()} Xeroura AI. Built for <strong>pawanavantsa</strong> YouTube tutorial.</p>
             <div className="flex items-center gap-4">
               <Link href="/privacy" className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Privacy</Link>
               <Link href="/terms" className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Terms</Link>

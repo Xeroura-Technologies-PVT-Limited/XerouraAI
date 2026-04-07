@@ -1,7 +1,7 @@
 # Xeroura AI — Multi-Channel Customer Support System
 
 ## Project Overview
-A production-ready AI customer support agent that handles WhatsApp, Email (Gmail), and Web Chat — all feeding into one AI brain. Built for a CodeWithMuh YouTube tutorial demonstrating how to replace expensive SaaS tools ($990-$1500/mo) with a self-hosted solution (~$85/mo).
+A production-ready AI customer support agent that handles WhatsApp, Email (Gmail), and Web Chat — all feeding into one AI brain. Built for a pawanavantsa YouTube tutorial demonstrating how to replace expensive SaaS tools ($990-$1500/mo) with a self-hosted solution (~$85/mo).
 
 The core principle: **80/20 hybrid approach** — AI handles 80% of routine tickets, humans handle the complex 20%. This is NOT a full replacement for human agents; it's a force multiplier.
 
@@ -178,7 +178,7 @@ NGROK_AUTHTOKEN=
 ```
 
 ## Important Notes
-- This project is for a YouTube tutorial (CodeWithMuh channel) — code should be clean, well-structured, and easy to follow
+- This project is for a YouTube tutorial (pawanavantsa channel) — code should be clean, well-structured, and easy to follow
 - Prioritize readability over cleverness — viewers will be reading this code
 - Keep functions focused and well-named so they're self-documenting
 - WhatsApp Business API service messages are free within the 24-hour customer-initiated window

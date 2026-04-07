@@ -4,7 +4,7 @@
 
 Built with Django, Claude AI (Haiku + Sonnet), PostgreSQL + pgvector, and Next.js. Fully self-hosted via Docker Compose.
 
-**Full tutorial on YouTube:** [CodeWithMuh](https://youtube.com/@codewithmuh)
+**Full tutorial on YouTube:** [pawanavantsa](https://youtube.com/@pawanavantsa)
 
 ![Xeroura AI Dashboard](https://img.shields.io/badge/Status-Production_Ready-brightgreen) ![License](https://img.shields.io/badge/License-MIT-blue) ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white) ![Claude](https://img.shields.io/badge/AI-Claude_Sonnet-orange)
 
@@ -113,7 +113,7 @@ Built with Django, Claude AI (Haiku + Sonnet), PostgreSQL + pgvector, and Next.j
 ### 1. Clone & Configure
 
 ```bash
-git clone https://github.com/codewithmuh/xeroura-ai.git
+git clone https://github.com/pawanavantsa/xeroura-ai.git
 cd xeroura-ai
 cp .env.example .env
 ```
@@ -436,4 +436,4 @@ If this helped you, give it a star on GitHub!
 
 ---
 
-**Built live on [CodeWithMuh](https://youtube.com/@codewithmuh) using [Claude Code](https://claude.ai/claude-code).**
+**Built live on [pawanavantsa](https://youtube.com/@pawanavantsa) using [Claude Code](https://claude.ai/claude-code).**

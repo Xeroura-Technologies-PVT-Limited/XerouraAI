@@ -79,7 +79,7 @@ export default function TermsOfServicePage() {
             <ul>
               <li>Xeroura AI is open-source software. The source code is available under its respective license.</li>
               <li>You retain ownership of all data you input into the Service (conversations, knowledge base, etc.).</li>
-              <li>The &quot;Xeroura AI&quot; name and branding are used for the CodeWithMuh YouTube tutorial project.</li>
+              <li>The &quot;Xeroura AI&quot; name and branding are used for the pawanavantsa YouTube tutorial project.</li>
             </ul>
           </Section>
 
@@ -102,7 +102,7 @@ export default function TermsOfServicePage() {
           </Section>
 
           <Section title="11. Contact">
-            <p>For questions about these terms, please reach out through the GitHub repository or the CodeWithMuh YouTube channel.</p>
+            <p>For questions about these terms, please reach out through the GitHub repository or the pawanavantsa YouTube channel.</p>
           </Section>
         </div>
 

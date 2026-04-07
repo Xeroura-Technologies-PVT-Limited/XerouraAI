@@ -74,7 +74,7 @@ export default function LoginPage() {
 
           {/* Bottom */}
           <p className="text-xs text-indigo-300">
-            Built for CodeWithMuh YouTube tutorial
+            Built for pawanavantsa YouTube tutorial
           </p>
         </div>
       </div>

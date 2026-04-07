@@ -75,7 +75,7 @@ export default function PrivacyPolicyPage() {
           </Section>
 
           <Section title="7. Contact">
-            <p>If you have questions about this privacy policy, please contact us through the GitHub repository or the CodeWithMuh YouTube channel.</p>
+            <p>If you have questions about this privacy policy, please contact us through the GitHub repository or the pawanavantsa YouTube channel.</p>
           </Section>
         </div>
 
