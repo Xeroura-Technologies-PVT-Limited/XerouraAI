@@ -8,10 +8,11 @@ import AISidebar from "@/components/AISidebar";
 import { API_URL } from "@/lib/api";
 
 interface Message {
-  id: number;
+  id: string;
   role: "customer" | "ai" | "agent";
   content: string;
   created_at: string;
+  metadata?: Record<string, unknown>;
 }
 
 interface TicketDetail {
@@ -43,6 +44,7 @@ const channelIcons: Record<string, { icon: string; color: string }> = {
   telegram: { icon: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.03-1.97 1.25-5.57 3.68-.53.36-1 .54-1.43.53-.47-.01-1.38-.27-2.05-.48-.83-.27-1.49-.42-1.43-.88.03-.24.37-.49.98-.75 3.85-1.68 6.42-2.79 7.71-3.32 3.67-1.53 4.43-1.79 4.93-1.8.11 0 .35.03.51.14.13.1.17.23.18.33.02.1.04.33.02.51z", color: "text-sky-600 dark:text-sky-400" },
   email: { icon: "M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z", color: "text-red-500 dark:text-red-400" },
   webchat: { icon: "M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z", color: "text-violet-600 dark:text-violet-400" },
+  voice: { icon: "M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z", color: "text-teal-600 dark:text-teal-400" },
 };
 
 export default function TicketDetailPage() {
@@ -182,7 +184,7 @@ export default function TicketDetailPage() {
             <div className="flex items-center gap-3">
               {/* Channel icon */}
               <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-slate-700 flex items-center justify-center">
-                <svg className={`w-4.5 h-4.5 ${ch.color}`} fill={ticket.channel === "whatsapp" || ticket.channel === "telegram" ? "currentColor" : "none"} stroke={ticket.channel === "whatsapp" || ticket.channel === "telegram" ? "none" : "currentColor"} viewBox="0 0 24 24">
+                <svg className={`w-4.5 h-4.5 ${ch.color}`} fill={ticket.channel === "whatsapp" || ticket.channel === "telegram" || ticket.channel === "voice" ? "currentColor" : "none"} stroke={ticket.channel === "whatsapp" || ticket.channel === "telegram" || ticket.channel === "voice" ? "none" : "currentColor"} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d={ch.icon} />
                 </svg>
               </div>
@@ -243,6 +245,13 @@ export default function TicketDetailPage() {
         <div className="flex-1 flex flex-col min-w-0">
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50 dark:bg-slate-900/50">
+            {ticket.channel === "voice" && (
+              <div className="mb-4 rounded-lg border border-teal-100 dark:border-teal-900/40 bg-teal-50/80 dark:bg-teal-950/30 px-3 py-2 text-[11px] text-teal-800 dark:text-teal-200">
+                Voice ticket: caller turns appear from phone STT; your Send reply is played on the caller&apos;s line when Twilio still has an active call (
+                <code className="text-[10px] opacity-90">last_voice_call_sid</code>
+                ). Set <span className="font-medium">PUBLIC_BASE_URL</span> and Twilio webhooks for production.
+              </div>
+            )}
             <ConversationThread messages={ticket.messages} />
           </div>
 

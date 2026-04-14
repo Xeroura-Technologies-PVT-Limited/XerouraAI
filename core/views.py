@@ -1,6 +1,7 @@
 import logging
 
 from django.contrib.postgres.search import SearchQuery, SearchVector
+from django.db.models import Case, Exists, IntegerField, OuterRef, Q, Subquery, Value, When
 from rest_framework import generics, status
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny
@@ -30,6 +31,7 @@ from .serializers import (
     KnowledgeBaseSerializer,
     ProcessMessageSerializer,
     TagSerializer,
+    VoiceCallQueueSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -40,45 +42,70 @@ def process_message_internal(
     sender_id: str,
     sender_name: str = "",
     channel: str = "webchat",
+    *,
+    conversation: Conversation | None = None,
+    skip_save_customer_message: bool = False,
+    customer_message_metadata: dict | None = None,
+    ai_response_metadata: dict | None = None,
 ) -> dict:
-    """Core message processing pipeline. Used by all channels (WhatsApp, Email, WebChat).
+    """Core message processing pipeline. Used by all channels (WhatsApp, Email, WebChat, Voice).
+
+    If ``conversation`` is provided, it is used instead of looking up by sender/channel.
+    If ``skip_save_customer_message`` is True, the caller must already have persisted the
+    customer turn (e.g. voice STT) — only the AI pipeline runs.
 
     Returns dict with: response, classification, conversation_id, escalated
     """
-    # Find existing open conversation or create a new one (race-condition safe)
-    conversation = (
-        Conversation.objects.filter(
-            sender_id=sender_id,
-            channel=channel,
-        )
-        .exclude(status="resolved")
-        .order_by("-created_at")
-        .first()
-    )
     if conversation is None:
-        try:
-            conversation = Conversation.objects.create(
+        # Find existing open conversation or create a new one (race-condition safe)
+        conversation = (
+            Conversation.objects.filter(
                 sender_id=sender_id,
                 channel=channel,
-                sender_name=sender_name or sender_id,
             )
-        except Exception:
-            # Race condition: another request created it first
-            conversation = (
-                Conversation.objects.filter(
-                    sender_id=sender_id, channel=channel,
+            .exclude(status="resolved")
+            .order_by("-created_at")
+            .first()
+        )
+        if conversation is None:
+            try:
+                conversation = Conversation.objects.create(
+                    sender_id=sender_id,
+                    channel=channel,
+                    sender_name=sender_name or sender_id,
                 )
-                .exclude(status="resolved")
-                .order_by("-created_at")
-                .first()
-            )
+            except Exception:
+                # Race condition: another request created it first
+                conversation = (
+                    Conversation.objects.filter(
+                        sender_id=sender_id, channel=channel,
+                    )
+                    .exclude(status="resolved")
+                    .order_by("-created_at")
+                    .first()
+                )
+    elif (
+        conversation.sender_id != sender_id
+        or conversation.channel != channel
+    ):
+        logger.warning(
+            "process_message_internal: conversation %s sender/channel mismatch "
+            "(expected %s/%s, got %s/%s)",
+            conversation.id,
+            conversation.sender_id,
+            conversation.channel,
+            sender_id,
+            channel,
+        )
 
-    # Save customer message
-    Message.objects.create(
-        conversation=conversation,
-        role="customer",
-        content=message,
-    )
+    # Save customer message (unless voice/STT path already saved it)
+    if not skip_save_customer_message:
+        Message.objects.create(
+            conversation=conversation,
+            role="customer",
+            content=message,
+            metadata=customer_message_metadata or {},
+        )
 
     # If human-only mode is on, skip AI entirely — wait for human agent
     if conversation.human_only:
@@ -92,17 +119,112 @@ def process_message_internal(
             "conversation_id": str(conversation.id),
             "escalated": False,
             "human_only": True,
+            "resolved": False,
         }
 
     # Classify with Haiku
     classification = classify_ticket(message)
 
+    # Previous AI asked if the issue is resolved — handle yes (close) / no (escalate) before other escalation.
+    if conversation.status == "active":
+        try:
+            from escalation.detector import (
+                DEFAULT_HANDOFF_REPLY,
+                DEFAULT_RESOLVED_CLOSING_REPLY,
+                ai_message_asks_additional_help_question,
+                ai_message_asks_issue_fixed_question,
+                ai_message_asks_resolution_followup,
+                last_ai_message_before_latest_customer,
+                user_confirms_issue_resolved,
+                user_indicates_issue_still_broken,
+                user_means_no_further_help,
+            )
+            from escalation.handoff import create_handoff_package
+
+            prev_ai = last_ai_message_before_latest_customer(conversation)
+            if prev_ai and ai_message_asks_resolution_followup(prev_ai):
+                issue_asks = ai_message_asks_issue_fixed_question(prev_ai)
+                more_help = ai_message_asks_additional_help_question(prev_ai)
+
+                if user_confirms_issue_resolved(message):
+                    conversation.status = "resolved"
+                    conversation.save(update_fields=["status", "updated_at"])
+                    out = DEFAULT_RESOLVED_CLOSING_REPLY
+                    Message.objects.create(
+                        conversation=conversation,
+                        role="ai",
+                        content=out,
+                        metadata={"resolved": True, "resolution_confirmed": True},
+                    )
+                    return {
+                        "response": out,
+                        "classification": classification,
+                        "conversation_id": str(conversation.id),
+                        "escalated": False,
+                        "resolved": True,
+                    }
+                # "Anything else you need?" → no = nothing more to do; close the ticket.
+                if more_help and user_means_no_further_help(message):
+                    conversation.status = "resolved"
+                    conversation.save(update_fields=["status", "updated_at"])
+                    out = DEFAULT_RESOLVED_CLOSING_REPLY
+                    Message.objects.create(
+                        conversation=conversation,
+                        role="ai",
+                        content=out,
+                        metadata={"resolved": True, "resolution_confirmed": True, "followup": "no_more_help"},
+                    )
+                    return {
+                        "response": out,
+                        "classification": classification,
+                        "conversation_id": str(conversation.id),
+                        "escalated": False,
+                        "resolved": True,
+                    }
+                if user_indicates_issue_still_broken(
+                    message, issue_asks=issue_asks, more_help=more_help
+                ):
+                    conversation.status = "escalated"
+                    conversation.save(update_fields=["status", "updated_at"])
+                    try:
+                        create_handoff_package(
+                            conversation_id=str(conversation.id),
+                            reason="customer_request",
+                            details=(
+                                "Customer indicated the issue is not resolved after the assistant "
+                                "asked for status or follow-up."
+                            ),
+                        )
+                    except Exception as e:
+                        logger.error("Failed to create handoff package: %s", str(e))
+                    out = DEFAULT_HANDOFF_REPLY
+                    Message.objects.create(
+                        conversation=conversation,
+                        role="ai",
+                        content=out,
+                        metadata={
+                            "escalated": True,
+                            "reason": "customer_request",
+                            "escalation_trigger": "resolution_denied",
+                        },
+                    )
+                    return {
+                        "response": out,
+                        "classification": classification,
+                        "conversation_id": str(conversation.id),
+                        "escalated": True,
+                        "escalation_reason": "customer_request",
+                        "resolved": False,
+                    }
+        except Exception as e:
+            logger.exception("Resolution follow-up handling failed: %s", e)
+
     # Check for escalation
     try:
-        from escalation.detector import should_escalate
+        from escalation.detector import DEFAULT_HANDOFF_REPLY, should_escalate
         from escalation.handoff import create_handoff_package
 
-        escalation_result = should_escalate(message, classification)
+        escalation_result = should_escalate(message, classification, conversation)
     except Exception as e:
         logger.error("Escalation check failed: %s", str(e))
         escalation_result = {"should_escalate": False}
@@ -120,16 +242,18 @@ def process_message_internal(
         except Exception as e:
             logger.error("Failed to create handoff package: %s", str(e))
 
-        ai_response = (
-            "I understand your concern, and I want to make sure you get the best help possible. "
-            "Let me connect you with a team member right away. They'll have the full context "
-            "of our conversation and will be with you shortly."
-        )
+        ai_response = DEFAULT_HANDOFF_REPLY
+        esc_meta = {
+            "escalated": True,
+            "reason": escalation_result.get("reason", ""),
+        }
+        if ai_response_metadata:
+            esc_meta.update(ai_response_metadata)
         Message.objects.create(
             conversation=conversation,
             role="ai",
             content=ai_response,
-            metadata={"escalated": True, "reason": escalation_result.get("reason", "")},
+            metadata=esc_meta,
         )
 
         return {
@@ -138,6 +262,7 @@ def process_message_internal(
             "conversation_id": str(conversation.id),
             "escalated": True,
             "escalation_reason": escalation_result.get("reason", ""),
+            "resolved": False,
         }
 
     # Retrieve knowledge base context
@@ -178,16 +303,70 @@ def process_message_internal(
             guardrail_result["flagged_terms"],
         )
 
+    # If the model offered a teammate / human in its reply, escalate the ticket (same as explicit human request).
+    try:
+        from escalation.detector import assistant_response_offers_handoff
+        from escalation.handoff import create_handoff_package
+
+        if (
+            conversation.status != "escalated"
+            and assistant_response_offers_handoff(ai_response)
+        ):
+            conversation.status = "escalated"
+            conversation.save(update_fields=["status", "updated_at"])
+            try:
+                create_handoff_package(
+                    conversation_id=str(conversation.id),
+                    reason="customer_request",
+                    details=(
+                        "Assistant reply offered connection to a teammate or human support "
+                        "(detected from model wording, e.g. no KB match)."
+                    ),
+                )
+            except Exception as e:
+                logger.error("Failed to create handoff package: %s", str(e))
+
+            esc_meta = {
+                "escalated": True,
+                "reason": "customer_request",
+                "escalation_trigger": "ai_offered_handoff",
+                "confidence": response_result["confidence"],
+                "guardrails": guardrail_result,
+                "classification": classification,
+            }
+            if ai_response_metadata:
+                esc_meta.update(ai_response_metadata)
+            Message.objects.create(
+                conversation=conversation,
+                role="ai",
+                content=ai_response,
+                metadata=esc_meta,
+            )
+
+            return {
+                "response": ai_response,
+                "classification": classification,
+                "conversation_id": str(conversation.id),
+                "escalated": True,
+                "escalation_reason": "customer_request",
+                "resolved": False,
+            }
+    except Exception as e:
+        logger.error("Handoff detection after generate_response failed: %s", str(e))
+
     # Save AI response
+    normal_meta = {
+        "confidence": response_result["confidence"],
+        "guardrails": guardrail_result,
+        "classification": classification,
+    }
+    if ai_response_metadata:
+        normal_meta.update(ai_response_metadata)
     Message.objects.create(
         conversation=conversation,
         role="ai",
         content=ai_response,
-        metadata={
-            "confidence": response_result["confidence"],
-            "guardrails": guardrail_result,
-            "classification": classification,
-        },
+        metadata=normal_meta,
     )
 
     return {
@@ -195,6 +374,7 @@ def process_message_internal(
         "classification": classification,
         "conversation_id": str(conversation.id),
         "escalated": False,
+        "resolved": False,
     }
 
 
@@ -251,11 +431,118 @@ class ProcessMessageView(APIView):
         classification = classify_ticket(message)
         category = classification["category"]
 
+        # 3b. Resolution follow-up (same as process_message_internal)
+        if conversation.status == "active":
+            try:
+                from escalation.detector import (
+                    DEFAULT_HANDOFF_REPLY,
+                    DEFAULT_RESOLVED_CLOSING_REPLY,
+                    ai_message_asks_additional_help_question,
+                    ai_message_asks_issue_fixed_question,
+                    ai_message_asks_resolution_followup,
+                    last_ai_message_before_latest_customer,
+                    user_confirms_issue_resolved,
+                    user_indicates_issue_still_broken,
+                    user_means_no_further_help,
+                )
+                from escalation.handoff import create_handoff_package
+
+                prev_ai = last_ai_message_before_latest_customer(conversation)
+                if prev_ai and ai_message_asks_resolution_followup(prev_ai):
+                    issue_asks = ai_message_asks_issue_fixed_question(prev_ai)
+                    more_help = ai_message_asks_additional_help_question(prev_ai)
+
+                    if user_confirms_issue_resolved(message):
+                        conversation.status = "resolved"
+                        conversation.save(update_fields=["status", "updated_at"])
+                        out = DEFAULT_RESOLVED_CLOSING_REPLY
+                        Message.objects.create(
+                            conversation=conversation,
+                            role="ai",
+                            content=out,
+                            metadata={"resolved": True, "resolution_confirmed": True},
+                        )
+                        return Response(
+                            {
+                                "conversation_id": str(conversation.id),
+                                "classification": classification,
+                                "escalated": False,
+                                "resolved": True,
+                                "response": out,
+                            },
+                            status=status.HTTP_200_OK,
+                        )
+                    if more_help and user_means_no_further_help(message):
+                        conversation.status = "resolved"
+                        conversation.save(update_fields=["status", "updated_at"])
+                        out = DEFAULT_RESOLVED_CLOSING_REPLY
+                        Message.objects.create(
+                            conversation=conversation,
+                            role="ai",
+                            content=out,
+                            metadata={
+                                "resolved": True,
+                                "resolution_confirmed": True,
+                                "followup": "no_more_help",
+                            },
+                        )
+                        return Response(
+                            {
+                                "conversation_id": str(conversation.id),
+                                "classification": classification,
+                                "escalated": False,
+                                "resolved": True,
+                                "response": out,
+                            },
+                            status=status.HTTP_200_OK,
+                        )
+                    if user_indicates_issue_still_broken(
+                        message, issue_asks=issue_asks, more_help=more_help
+                    ):
+                        conversation.status = "escalated"
+                        conversation.save(update_fields=["status", "updated_at"])
+                        try:
+                            create_handoff_package(
+                                conversation_id=str(conversation.id),
+                                reason="customer_request",
+                                details=(
+                                    "Customer indicated the issue is not resolved after the assistant "
+                                    "asked for status or follow-up."
+                                ),
+                            )
+                        except Exception as e:
+                            logger.error("Failed to create handoff package: %s", str(e))
+                        out = DEFAULT_HANDOFF_REPLY
+                        Message.objects.create(
+                            conversation=conversation,
+                            role="ai",
+                            content=out,
+                            metadata={
+                                "escalated": True,
+                                "reason": "customer_request",
+                                "escalation_trigger": "resolution_denied",
+                            },
+                        )
+                        return Response(
+                            {
+                                "conversation_id": str(conversation.id),
+                                "classification": classification,
+                                "escalated": True,
+                                "escalation_reason": "customer_request",
+                                "resolved": False,
+                                "response": out,
+                            },
+                            status=status.HTTP_200_OK,
+                        )
+            except Exception as e:
+                logger.exception("Resolution follow-up handling failed: %s", e)
+
         # 4. Check for escalation
         try:
-            from escalation.detector import should_escalate
+            from escalation.detector import DEFAULT_HANDOFF_REPLY, should_escalate
+            from escalation.handoff import create_handoff_package
 
-            escalation_result = should_escalate(message, classification)
+            escalation_result = should_escalate(message, classification, conversation)
         except ImportError:
             logger.warning("escalation.detector not available, skipping escalation check")
             escalation_result = {"should_escalate": False}
@@ -267,11 +554,16 @@ class ProcessMessageView(APIView):
             conversation.status = "escalated"
             conversation.save(update_fields=["status", "updated_at"])
 
-            ai_response = (
-                "I understand this needs special attention. "
-                "I'm connecting you with a human agent who can help further. "
-                "Please hold on."
-            )
+            try:
+                create_handoff_package(
+                    conversation_id=str(conversation.id),
+                    reason=escalation_result.get("reason", "customer_request"),
+                    details=escalation_result.get("details", ""),
+                )
+            except Exception as e:
+                logger.error("Failed to create handoff package: %s", str(e))
+
+            ai_response = DEFAULT_HANDOFF_REPLY
             Message.objects.create(
                 conversation=conversation,
                 role="ai",
@@ -285,6 +577,7 @@ class ProcessMessageView(APIView):
                     "classification": classification,
                     "escalated": True,
                     "escalation_reason": escalation_result.get("reason", ""),
+                    "resolved": False,
                     "response": ai_response,
                 },
                 status=status.HTTP_200_OK,
@@ -330,6 +623,60 @@ class ProcessMessageView(APIView):
                 guardrail_result["flagged_terms"],
             )
 
+        # Escalate when the model's reply offers a teammate / human (align with process_message_internal).
+        try:
+            from escalation.detector import assistant_response_offers_handoff
+
+            if (
+                conversation.status != "escalated"
+                and assistant_response_offers_handoff(ai_response)
+            ):
+                from escalation.handoff import create_handoff_package
+
+                conversation.status = "escalated"
+                conversation.save(update_fields=["status", "updated_at"])
+                try:
+                    create_handoff_package(
+                        conversation_id=str(conversation.id),
+                        reason="customer_request",
+                        details=(
+                            "Assistant reply offered connection to a teammate or human support "
+                            "(detected from model wording)."
+                        ),
+                    )
+                except Exception as e:
+                    logger.error("Failed to create handoff package: %s", str(e))
+
+                Message.objects.create(
+                    conversation=conversation,
+                    role="ai",
+                    content=ai_response,
+                    metadata={
+                        "escalated": True,
+                        "reason": "customer_request",
+                        "escalation_trigger": "ai_offered_handoff",
+                        "confidence": response_result["confidence"],
+                        "guardrails": guardrail_result,
+                        "classification": classification,
+                    },
+                )
+
+                return Response(
+                    {
+                        "conversation_id": str(conversation.id),
+                        "classification": classification,
+                        "escalated": True,
+                        "escalation_reason": "customer_request",
+                        "resolved": False,
+                        "response": ai_response,
+                        "confidence": response_result["confidence"],
+                        "guardrails": guardrail_result,
+                    },
+                    status=status.HTTP_200_OK,
+                )
+        except Exception as e:
+            logger.error("Handoff detection after generate_response failed: %s", str(e))
+
         # 9. Save the AI response
         Message.objects.create(
             conversation=conversation,
@@ -347,6 +694,7 @@ class ProcessMessageView(APIView):
                 "conversation_id": str(conversation.id),
                 "classification": classification,
                 "escalated": False,
+                "resolved": False,
                 "response": ai_response,
                 "confidence": response_result["confidence"],
                 "guardrails": guardrail_result,
@@ -404,6 +752,62 @@ class ToggleHumanOnlyView(APIView):
             "conversation_id": str(conversation.id),
             "human_only": conversation.human_only,
         })
+
+
+class VoiceCallsQueueView(APIView):
+    """GET — Active voice conversations for the Calls dashboard.
+
+    Returns ``needs_attention_count`` (caller asked for human, escalated, or
+    human-only) and a list sorted with those first. Used for sidebar badges
+    and the dedicated Calls page.
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        from escalation.models import Escalation
+
+        latest_customer = Subquery(
+            Message.objects.filter(
+                conversation_id=OuterRef("pk"),
+                role="customer",
+            )
+            .order_by("-created_at")
+            .values("content")[:1]
+        )
+        open_escalation = Escalation.objects.filter(
+            conversation_id=OuterRef("pk"),
+            resolved=False,
+        )
+        qs = (
+            Conversation.objects.filter(channel="voice")
+            .exclude(status="resolved")
+            .annotate(_last_customer_preview=latest_customer)
+            .annotate(_has_open_escalation=Exists(open_escalation))
+            .annotate(
+                _priority=Case(
+                    When(
+                        Q(status="escalated")
+                        | Q(human_only=True)
+                        | Q(_has_open_escalation=True),
+                        then=Value(0),
+                    ),
+                    default=Value(1),
+                    output_field=IntegerField(),
+                ),
+            )
+            .prefetch_related("escalations")
+            .order_by("_priority", "-updated_at")
+        )
+        ser = VoiceCallQueueSerializer(qs, many=True)
+        calls = ser.data
+        needs = sum(1 for row in calls if row.get("needs_human"))
+        return Response(
+            {
+                "needs_attention_count": needs,
+                "calls": calls,
+            }
+        )
 
 
 class ConversationDetailView(generics.RetrieveAPIView):

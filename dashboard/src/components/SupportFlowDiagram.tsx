@@ -1,6 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
+import { scrollViewport } from "@/lib/motionPresets";
 
 interface FlowNode {
   icon: string;
@@ -14,6 +15,7 @@ const channelNodes: FlowNode[] = [
   { icon: "✈️", label: "Telegram", sublabel: "Bot API", color: "#0ea5e9" },
   { icon: "📧", label: "Email", sublabel: "Gmail API", color: "#ef4444" },
   { icon: "🌐", label: "Web Chat", sublabel: "WebSocket", color: "#8b5cf6" },
+  { icon: "📞", label: "Phone", sublabel: "Twilio Voice", color: "#14b8a6" },
 ];
 
 const pipelineNodes: FlowNode[] = [
@@ -29,12 +31,22 @@ const escalationNodes: FlowNode[] = [
   { icon: "👤", label: "Human Agent", sublabel: "Review & Reply", color: "#f59e0b" },
 ];
 
-function HArrow({ delay, color = "#818cf8", dashed = false }: { delay: number; color?: string; dashed?: boolean }) {
+function HArrow({
+  delay,
+  color = "#818cf8",
+  dashed = false,
+  viewport,
+}: {
+  delay: number;
+  color?: string;
+  dashed?: boolean;
+  viewport: ReturnType<typeof scrollViewport>;
+}) {
   return (
     <motion.div
       initial={{ opacity: 0, scaleX: 0 }}
       whileInView={{ opacity: 1, scaleX: 1 }}
-      viewport={{ once: true }}
+      viewport={viewport}
       transition={{ delay, duration: 0.35 }}
       className="flex items-center px-0.5"
       style={{ originX: 0 }}
@@ -49,7 +61,7 @@ function HArrow({ delay, color = "#818cf8", dashed = false }: { delay: number; c
           strokeDasharray={dashed ? "4 3" : undefined}
           initial={{ pathLength: 0 }}
           whileInView={{ pathLength: 1 }}
-          viewport={{ once: true }}
+          viewport={viewport}
           transition={{ delay: delay + 0.1, duration: 0.4 }}
         />
       </svg>
@@ -57,12 +69,20 @@ function HArrow({ delay, color = "#818cf8", dashed = false }: { delay: number; c
   );
 }
 
-function VArrow({ delay, color = "#818cf8" }: { delay: number; color?: string }) {
+function VArrow({
+  delay,
+  color = "#818cf8",
+  viewport,
+}: {
+  delay: number;
+  color?: string;
+  viewport: ReturnType<typeof scrollViewport>;
+}) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
       whileInView={{ opacity: 1 }}
-      viewport={{ once: true }}
+      viewport={viewport}
       transition={{ delay, duration: 0.3 }}
       className="flex justify-center py-1"
     >
@@ -75,7 +95,7 @@ function VArrow({ delay, color = "#818cf8" }: { delay: number; color?: string })
           strokeLinejoin="round"
           initial={{ pathLength: 0 }}
           whileInView={{ pathLength: 1 }}
-          viewport={{ once: true }}
+          viewport={viewport}
           transition={{ delay: delay + 0.1, duration: 0.4 }}
         />
       </svg>
@@ -83,13 +103,25 @@ function VArrow({ delay, color = "#818cf8" }: { delay: number; color?: string })
   );
 }
 
-function NodeCard({ node, delay, pulse, size = "normal" }: { node: FlowNode; delay: number; pulse?: boolean; size?: "normal" | "small" }) {
+function NodeCard({
+  node,
+  delay,
+  pulse,
+  size = "normal",
+  viewport,
+}: {
+  node: FlowNode;
+  delay: number;
+  pulse?: boolean;
+  size?: "normal" | "small";
+  viewport: ReturnType<typeof scrollViewport>;
+}) {
   const isSmall = size === "small";
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
+      viewport={viewport}
       transition={{ delay, duration: 0.45 }}
       className={`relative flex flex-col items-center gap-2 rounded-2xl shadow-md hover:shadow-lg transition-shadow ${isSmall ? "px-5 py-4" : "px-7 py-5"}`}
       style={{
@@ -128,6 +160,9 @@ function NodeCard({ node, delay, pulse, size = "normal" }: { node: FlowNode; del
 }
 
 export default function SupportFlowDiagram() {
+  const reducedMotion = useReducedMotion();
+  const flowViewport = scrollViewport(reducedMotion);
+
   return (
     <div className="py-20 px-6" id="how-it-works">
       <div className="max-w-5xl mx-auto">
@@ -135,7 +170,7 @@ export default function SupportFlowDiagram() {
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            viewport={flowViewport}
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 text-sm font-medium mb-4"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
@@ -153,14 +188,14 @@ export default function SupportFlowDiagram() {
           <motion.p
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
+            viewport={flowViewport}
             className="text-center text-xs font-semibold text-emerald-600 dark:text-emerald-400 mb-4 uppercase tracking-widest"
           >
             ● Incoming Channels
           </motion.p>
-          <div className="flex items-center justify-center gap-4 mb-2">
+          <div className="flex flex-wrap items-center justify-center gap-3 mb-2 max-w-4xl mx-auto">
             {channelNodes.map((node, i) => (
-              <NodeCard key={node.label} node={node} delay={i * 0.08} size="small" />
+              <NodeCard key={node.label} node={node} delay={i * 0.08} size="small" viewport={flowViewport} />
             ))}
           </div>
 
@@ -168,12 +203,12 @@ export default function SupportFlowDiagram() {
           <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
+            viewport={flowViewport}
             transition={{ delay: 0.4 }}
             className="flex justify-center my-2"
           >
             <svg width="400" height="40" viewBox="0 0 400 40" fill="none" className="mx-auto">
-              {[60, 150, 250, 340].map((x, i) => (
+              {[40, 110, 200, 290, 360].map((x, i) => (
                 <motion.path
                   key={i}
                   d={`M${x} 0L200 32`}
@@ -183,7 +218,7 @@ export default function SupportFlowDiagram() {
                   strokeDasharray="4 3"
                   initial={{ pathLength: 0 }}
                   whileInView={{ pathLength: 1 }}
-                  viewport={{ once: true }}
+                  viewport={flowViewport}
                   transition={{ delay: 0.45 + i * 0.05, duration: 0.35 }}
                 />
               ))}
@@ -194,7 +229,7 @@ export default function SupportFlowDiagram() {
                 strokeLinecap="round"
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
+                viewport={flowViewport}
                 transition={{ delay: 0.75 }}
               />
             </svg>
@@ -204,7 +239,7 @@ export default function SupportFlowDiagram() {
           <motion.p
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
+            viewport={flowViewport}
             transition={{ delay: 0.7 }}
             className="text-center text-xs font-semibold text-indigo-600 dark:text-indigo-400 mb-4 uppercase tracking-widest"
           >
@@ -213,8 +248,8 @@ export default function SupportFlowDiagram() {
           <div className="flex items-center justify-center gap-0.5">
             {pipelineNodes.map((node, i) => (
               <div key={node.label} className="contents">
-                {i > 0 && <HArrow delay={0.8 + i * 0.1} />}
-                <NodeCard node={node} delay={0.8 + i * 0.1} pulse={node.label === "Generate"} />
+                {i > 0 && <HArrow delay={0.8 + i * 0.1} viewport={flowViewport} />}
+                <NodeCard node={node} delay={0.8 + i * 0.1} pulse={node.label === "Generate"} viewport={flowViewport} />
               </div>
             ))}
           </div>
@@ -223,7 +258,7 @@ export default function SupportFlowDiagram() {
           <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
+            viewport={flowViewport}
             transition={{ delay: 1.4 }}
             className="flex justify-center mt-3"
           >
@@ -238,14 +273,14 @@ export default function SupportFlowDiagram() {
                   strokeDasharray="5 4"
                   initial={{ pathLength: 0 }}
                   whileInView={{ pathLength: 1 }}
-                  viewport={{ once: true }}
+                  viewport={flowViewport}
                   transition={{ delay: 1.5, duration: 0.6 }}
                 />
               </svg>
               <motion.span
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
+                viewport={flowViewport}
                 transition={{ delay: 1.7 }}
                 className="rounded-full px-4 py-1.5 text-xs font-semibold mt-2"
                 style={{ background: "#f59e0b18", color: "#f59e0b", border: "1px solid #f59e0b30" }}
@@ -257,16 +292,16 @@ export default function SupportFlowDiagram() {
 
           {/* Escalation nodes */}
           <div className="flex items-center justify-center gap-2 mt-1">
-            <NodeCard node={escalationNodes[0]} delay={1.8} size="small" />
-            <HArrow delay={1.9} color="#f59e0b" dashed />
-            <NodeCard node={escalationNodes[1]} delay={2.0} size="small" />
+            <NodeCard node={escalationNodes[0]} delay={1.8} size="small" viewport={flowViewport} />
+            <HArrow delay={1.9} color="#f59e0b" dashed viewport={flowViewport} />
+            <NodeCard node={escalationNodes[1]} delay={2.0} size="small" viewport={flowViewport} />
           </div>
 
           {/* Return arrow: Response back through channels */}
           <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
+            viewport={flowViewport}
             transition={{ delay: 1.5 }}
             className="flex justify-center mt-6 mb-3"
           >
@@ -281,7 +316,7 @@ export default function SupportFlowDiagram() {
                   fill="none"
                   initial={{ pathLength: 0 }}
                   whileInView={{ pathLength: 1 }}
-                  viewport={{ once: true }}
+                  viewport={flowViewport}
                   transition={{ delay: 1.6, duration: 0.6 }}
                 />
                 <motion.path
@@ -292,14 +327,14 @@ export default function SupportFlowDiagram() {
                   strokeLinejoin="round"
                   initial={{ opacity: 0 }}
                   whileInView={{ opacity: 1 }}
-                  viewport={{ once: true }}
+                  viewport={flowViewport}
                   transition={{ delay: 2.1 }}
                 />
               </svg>
               <motion.span
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
+                viewport={flowViewport}
                 transition={{ delay: 1.9 }}
                 className="rounded-full px-4 py-1.5 text-xs font-semibold mt-2"
                 style={{ background: "#10b98118", color: "#10b981", border: "1px solid #10b98130" }}
@@ -313,7 +348,7 @@ export default function SupportFlowDiagram() {
           <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
+            viewport={flowViewport}
             transition={{ delay: 2.2 }}
             className="mt-6 flex justify-center"
           >
@@ -351,7 +386,7 @@ export default function SupportFlowDiagram() {
                 key={node.label}
                 initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
+                viewport={flowViewport}
                 transition={{ delay: i * 0.06 }}
                 className="bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-xl flex items-center gap-3 p-3"
               >
@@ -364,16 +399,16 @@ export default function SupportFlowDiagram() {
             ))}
           </div>
 
-          <VArrow delay={0.3} color="#6366f1" />
+          <VArrow delay={0.3} color="#6366f1" viewport={flowViewport} />
 
           {/* Pipeline steps */}
           {pipelineNodes.map((node, i) => (
             <div key={node.label}>
-              {i > 0 && <VArrow delay={0.4 + i * 0.08} />}
+              {i > 0 && <VArrow delay={0.4 + i * 0.08} viewport={flowViewport} />}
               <motion.div
                 initial={{ opacity: 0, x: -12 }}
                 whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
+                viewport={flowViewport}
                 transition={{ delay: 0.4 + i * 0.08, duration: 0.35 }}
                 className="bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-xl flex items-center gap-4 p-4"
               >
@@ -388,13 +423,13 @@ export default function SupportFlowDiagram() {
             </div>
           ))}
 
-          <VArrow delay={0.9} color="#10b981" />
+          <VArrow delay={0.9} color="#10b981" viewport={flowViewport} />
 
           {/* Response */}
           <motion.div
             initial={{ opacity: 0, x: -12 }}
             whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
+            viewport={flowViewport}
             transition={{ delay: 0.95 }}
             className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl flex items-center gap-4 p-4"
           >
@@ -411,7 +446,7 @@ export default function SupportFlowDiagram() {
           <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
+            viewport={flowViewport}
             transition={{ delay: 1.0 }}
             className="mt-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4"
           >

@@ -21,6 +21,7 @@ const channelConfig: Record<string, { bg: string; text: string }> = {
   email: { bg: "bg-blue-50 dark:bg-blue-900/30", text: "text-blue-700 dark:text-blue-400" },
   webchat: { bg: "bg-violet-50 dark:bg-violet-900/30", text: "text-violet-700 dark:text-violet-400" },
   telegram: { bg: "bg-sky-50 dark:bg-sky-900/30", text: "text-sky-700 dark:text-sky-400" },
+  voice: { bg: "bg-teal-50 dark:bg-teal-900/30", text: "text-teal-700 dark:text-teal-400" },
 };
 
 const statusConfig: Record<string, { bg: string; text: string; dot: string }> = {

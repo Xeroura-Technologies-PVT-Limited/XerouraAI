@@ -77,6 +77,7 @@ class ConversationSerializer(serializers.ModelSerializer):
             "status",
             "assigned_agent",
             "human_only",
+            "last_voice_call_sid",
             "created_at",
             "updated_at",
             "messages",
@@ -89,6 +90,54 @@ class ConversationSerializer(serializers.ModelSerializer):
     def get_escalation_id(self, obj) -> str | None:
         escalation = obj.escalations.filter(resolved=False).first()
         return str(escalation.id) if escalation else None
+
+
+class VoiceCallQueueSerializer(serializers.ModelSerializer):
+    """Voice-only queue row for the Calls dashboard."""
+
+    escalation_id = serializers.SerializerMethodField()
+    needs_human = serializers.SerializerMethodField()
+    has_live_call_hint = serializers.SerializerMethodField()
+    last_customer_preview = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Conversation
+        fields = [
+            "id",
+            "sender_id",
+            "sender_name",
+            "status",
+            "human_only",
+            "last_voice_call_sid",
+            "created_at",
+            "updated_at",
+            "escalation_id",
+            "needs_human",
+            "has_live_call_hint",
+            "last_customer_preview",
+        ]
+        read_only_fields = fields
+
+    def get_escalation_id(self, obj) -> str | None:
+        esc = obj.escalations.filter(resolved=False).first()
+        return str(esc.id) if esc else None
+
+    def get_needs_human(self, obj) -> bool:
+        if getattr(obj, "human_only", False):
+            return True
+        if obj.status == "escalated":
+            return True
+        return obj.escalations.filter(resolved=False).exists()
+
+    def get_has_live_call_hint(self, obj) -> bool:
+        return bool((obj.last_voice_call_sid or "").strip())
+
+    def get_last_customer_preview(self, obj) -> str:
+        text = getattr(obj, "_last_customer_preview", None) or ""
+        text = text.strip()
+        if len(text) > 140:
+            return text[:137] + "…"
+        return text
 
 
 class ConversationListSerializer(serializers.ModelSerializer):

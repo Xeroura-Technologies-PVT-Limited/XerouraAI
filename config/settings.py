@@ -113,6 +113,9 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"] if (BASE_DIR / "static").exists() else []
 
+MEDIA_URL = "/api/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
 # ---------------------------------------------------------------------------
 # Default primary key field type
 # ---------------------------------------------------------------------------
@@ -205,6 +208,18 @@ TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN", default="")
 
 MESSENGER_PAGE_ACCESS_TOKEN = env("MESSENGER_PAGE_ACCESS_TOKEN", default="")
 MESSENGER_VERIFY_TOKEN = env("MESSENGER_VERIFY_TOKEN", default="")
+
+# ---------------------------------------------------------------------------
+# Voice (Twilio + optional ElevenLabs)
+# ---------------------------------------------------------------------------
+
+PUBLIC_BASE_URL = env("PUBLIC_BASE_URL", default="")
+TWILIO_ACCOUNT_SID = env("TWILIO_ACCOUNT_SID", default="")
+TWILIO_AUTH_TOKEN = env("TWILIO_AUTH_TOKEN", default="")
+ELEVENLABS_API_KEY = env("ELEVENLABS_API_KEY", default="")
+ELEVENLABS_VOICE_ID = env("ELEVENLABS_VOICE_ID", default="")
+ELEVENLABS_MODEL_ID = env("ELEVENLABS_MODEL_ID", default="eleven_turbo_v2_5")
+VOICE_ESCALATION_FORWARD_NUMBER = env("VOICE_ESCALATION_FORWARD_NUMBER", default="")
 
 GOOGLE_CREDENTIALS_PATH = env("GOOGLE_CREDENTIALS_PATH", default="")
 GMAIL_WATCH_ADDRESS = env("GMAIL_WATCH_ADDRESS", default="")

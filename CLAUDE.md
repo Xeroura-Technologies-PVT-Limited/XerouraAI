@@ -1,7 +1,7 @@
 # Xeroura AI — Multi-Channel Customer Support System
 
 ## Project Overview
-A production-ready AI customer support agent that handles WhatsApp, Email (Gmail), and Web Chat — all feeding into one AI brain. Built for a pawanavantsa YouTube tutorial demonstrating how to replace expensive SaaS tools ($990-$1500/mo) with a self-hosted solution (~$85/mo).
+A production-ready AI customer support agent that handles WhatsApp, Email (Gmail), and Web Chat — all feeding into one AI brain. Demonstrates replacing expensive SaaS tools ($990-$1500/mo) with a self-hosted solution (~$85/mo).
 
 The core principle: **80/20 hybrid approach** — AI handles 80% of routine tickets, humans handle the complex 20%. This is NOT a full replacement for human agents; it's a force multiplier.
 
@@ -146,7 +146,7 @@ Store in PostgreSQL (conversations + messages tables)
 - **redis** — `redis:7-alpine` (channel layer for Django Channels WebSockets)
 - **backend** — Django app (DRF APIs + Django Channels ASGI)
 - **frontend** — Next.js agent dashboard
-- **ngrok** — (optional) tunnel for WhatsApp/Gmail webhooks in dev
+- **ngrok** — (optional) tunnel for WhatsApp, Gmail, and Twilio Voice webhooks in dev
 
 ## Environment Variables
 ```
@@ -169,6 +169,13 @@ WHATSAPP_ACCESS_TOKEN=
 WHATSAPP_PHONE_NUMBER_ID=
 WHATSAPP_VERIFY_TOKEN=
 
+# Voice (Twilio) — setup: dashboard Settings → Voice; docs/VOICE_AND_CALLS.md
+PUBLIC_BASE_URL=
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+ELEVENLABS_API_KEY=
+VOICE_ESCALATION_FORWARD_NUMBER=
+
 # Gmail
 GOOGLE_CREDENTIALS_PATH=
 GMAIL_WATCH_ADDRESS=
@@ -178,8 +185,8 @@ NGROK_AUTHTOKEN=
 ```
 
 ## Important Notes
-- This project is for a YouTube tutorial (pawanavantsa channel) — code should be clean, well-structured, and easy to follow
-- Prioritize readability over cleverness — viewers will be reading this code
+- Code should be clean, well-structured, and easy to follow
+- Prioritize readability over cleverness
 - Keep functions focused and well-named so they're self-documenting
 - WhatsApp Business API service messages are free within the 24-hour customer-initiated window
 - The dashboard is intentionally simple — not a full-featured helpdesk, just enough to demonstrate the concept

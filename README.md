@@ -4,8 +4,6 @@
 
 Built with Django, Claude AI (Haiku + Sonnet), PostgreSQL + pgvector, and Next.js. Fully self-hosted via Docker Compose.
 
-**Full tutorial on YouTube:** [pawanavantsa](https://youtube.com/@pawanavantsa)
-
 ![Xeroura AI Dashboard](https://img.shields.io/badge/Status-Production_Ready-brightgreen) ![License](https://img.shields.io/badge/License-MIT-blue) ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white) ![Claude](https://img.shields.io/badge/AI-Claude_Sonnet-orange)
 
 ---
@@ -113,8 +111,8 @@ Built with Django, Claude AI (Haiku + Sonnet), PostgreSQL + pgvector, and Next.j
 ### 1. Clone & Configure
 
 ```bash
-git clone https://github.com/pawanavantsa/xeroura-ai.git
-cd xeroura-ai
+git clone <your-repository-url>
+cd <project-directory>
 cp .env.example .env
 ```
 
@@ -221,6 +219,17 @@ Go to [http://localhost:3000](http://localhost:3000)
 ### Web Chat
 
 Already built in — uses WebSocket at `ws://localhost:8000/ws/chat/`
+
+### Voice (phone calls)
+
+Use **Twilio Voice** so callers talk to the same AI and tickets as chat. Step-by-step:
+
+1. Open the dashboard **Settings → Voice (phone calls)** (webhook URLs and checklist) or read **Documentation** in the app.
+2. Run `ngrok http 8000`, set `PUBLIC_BASE_URL` and `ALLOWED_HOSTS` in `.env` for that host.
+3. Add `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN`; point your Twilio number’s **Voice webhook** to `https://<your-public-host>/api/webhooks/voice/incoming/`.
+4. Restart the backend. Optional: `ELEVENLABS_API_KEY` / `ELEVENLABS_VOICE_ID`, `VOICE_ESCALATION_FORWARD_NUMBER` for transfers.
+
+Details: [docs/VOICE_AND_CALLS.md](docs/VOICE_AND_CALLS.md). Use the dashboard **Calls** page (sidebar) for live voice threads and human takeover.
 
 ---
 
@@ -407,6 +416,11 @@ xeroura-ai/
 | `WHATSAPP_ACCESS_TOKEN` | No | Meta WhatsApp API token |
 | `WHATSAPP_PHONE_NUMBER_ID` | No | WhatsApp phone number ID |
 | `WHATSAPP_VERIFY_TOKEN` | No | Webhook verify token (you make this up) |
+| `PUBLIC_BASE_URL` | No | HTTPS origin for Twilio Voice (`<Play>` / redirects); required with ngrok |
+| `TWILIO_ACCOUNT_SID` | No | Twilio Console |
+| `TWILIO_AUTH_TOKEN` | No | Twilio Console |
+| `ELEVENLABS_API_KEY` | No | Optional; neural TTS for voice AI |
+| `VOICE_ESCALATION_FORWARD_NUMBER` | No | Optional; E.164 PSTN on human escalation |
 | `TELEGRAM_BOT_TOKEN` | No | From @BotFather |
 | `GOOGLE_CREDENTIALS_PATH` | No | Path to Gmail OAuth JSON |
 | `GMAIL_WATCH_ADDRESS` | No | Gmail address to monitor |
@@ -433,7 +447,3 @@ MIT — use it, modify it, sell it as a service, build on top of it.
 ## Star History
 
 If this helped you, give it a star on GitHub!
-
----
-
-**Built live on [pawanavantsa](https://youtube.com/@pawanavantsa) using [Claude Code](https://claude.ai/claude-code).**

@@ -1,24 +1,22 @@
 import Link from "next/link";
+import { BrandMark } from "@/components/BrandMark";
 
 export default function PrivacyPolicyPage() {
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-900">
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950">
       {/* Nav */}
-      <nav className="border-b border-gray-100 dark:border-slate-800 px-6 h-14 flex items-center justify-between max-w-4xl mx-auto">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center">
-            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          <span className="text-sm font-bold text-gray-900 dark:text-white">Xeroura AI</span>
-        </Link>
-        <Link href="/" className="text-xs text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">&larr; Back to home</Link>
+      <nav className="sticky top-0 z-40 border-b border-slate-200/80 dark:border-slate-800/80 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl">
+        <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
+          <BrandMark size="sm" />
+          <Link href="/" className="text-xs font-medium text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors">
+            &larr; Back to home
+          </Link>
+        </div>
       </nav>
 
       <article className="max-w-3xl mx-auto px-6 py-12">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Privacy Policy</h1>
-        <p className="text-sm text-gray-400 dark:text-gray-500 mb-10">Last updated: {new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</p>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Privacy Policy</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-500 mb-10">Last updated: {new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</p>
 
         <div className="prose-style space-y-8">
           <Section title="1. Information We Collect">
@@ -75,13 +73,13 @@ export default function PrivacyPolicyPage() {
           </Section>
 
           <Section title="7. Contact">
-            <p>If you have questions about this privacy policy, please contact us through the GitHub repository or the pawanavantsa YouTube channel.</p>
+            <p>If you have questions about this privacy policy, please contact your deployment administrator or open an issue on the project repository.</p>
           </Section>
         </div>
 
-        <div className="mt-12 pt-6 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between">
+        <div className="mt-12 pt-6 border-t border-slate-200/90 dark:border-slate-800 flex items-center justify-between">
           <Link href="/terms" className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">Terms of Service &rarr;</Link>
-          <Link href="/" className="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Back to home</Link>
+          <Link href="/" className="text-sm text-slate-500 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">Back to home</Link>
         </div>
       </article>
     </div>
@@ -91,8 +89,8 @@ export default function PrivacyPolicyPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">{title}</h2>
-      <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed space-y-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-2 [&_a]:text-indigo-600 dark:[&_a]:text-indigo-400 [&_a]:underline">
+      <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-3">{title}</h2>
+      <div className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed space-y-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-2 [&_a]:text-indigo-600 dark:[&_a]:text-indigo-400 [&_a]:underline">
         {children}
       </div>
     </section>

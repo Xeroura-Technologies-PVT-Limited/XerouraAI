@@ -2,10 +2,11 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
 import { NotificationBell } from "@/components/NotificationBell";
+import { API_URL } from "@/lib/api";
 
 const PUBLIC_PATHS = ["/", "/login", "/signup", "/privacy", "/terms"];
 
@@ -13,8 +14,26 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { isAuthenticated, isLoading, user, logout } = useAuth();
+  const [voiceNeedsAttention, setVoiceNeedsAttention] = useState(0);
 
   const isPublicPage = PUBLIC_PATHS.includes(pathname);
+
+  useEffect(() => {
+    if (!isAuthenticated || isPublicPage) return;
+
+    const poll = () => {
+      fetch(`${API_URL}/api/voice/calls/`)
+        .then((r) => r.json())
+        .then((data) => {
+          const n = data?.needs_attention_count;
+          setVoiceNeedsAttention(typeof n === "number" ? n : 0);
+        })
+        .catch(() => setVoiceNeedsAttention(0));
+    };
+    poll();
+    const id = setInterval(poll, 8000);
+    return () => clearInterval(id);
+  }, [isAuthenticated, isPublicPage]);
 
   // Redirect to login if not authenticated (except public pages)
   useEffect(() => {
@@ -46,10 +65,10 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen">
       {/* Sidebar */}
-      <aside className="w-64 bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700 flex flex-col shadow-sm h-screen sticky top-0">
-        <div className="p-6 border-b border-gray-100 dark:border-slate-700">
+      <aside className="w-64 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-r border-slate-200/90 dark:border-slate-700/90 flex flex-col shadow-sm h-screen sticky top-0">
+        <div className="p-6 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-md shadow-indigo-500/20 ring-1 ring-white/10">
               <svg
                 className="w-5 h-5 text-white"
                 fill="none"
@@ -65,14 +84,22 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
               </svg>
             </div>
             <div>
-              <h1 className="text-base font-bold text-gray-900 dark:text-white">Xeroura AI</h1>
-              <p className="text-xs text-gray-400 dark:text-gray-500">Agent Dashboard</p>
+              <h1 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">Xeroura AI</h1>
+              <p className="text-xs text-slate-400 dark:text-slate-500">Agent Dashboard</p>
             </div>
           </div>
         </div>
 
         <nav className="flex-1 overflow-y-auto p-3 space-y-1">
           <NavLink href="/" icon="home" label="Dashboard" currentPath={pathname} />
+          <NavLink
+            href="/calls"
+            icon="calls"
+            label="Calls"
+            currentPath={pathname}
+            badgeCount={voiceNeedsAttention}
+            alertHighlight={voiceNeedsAttention > 0}
+          />
           <NavLink href="/tickets" icon="tickets" label="Tickets" currentPath={pathname} />
           <NavLink href="/analytics" icon="analytics" label="Analytics" currentPath={pathname} />
           <NavLink href="/knowledge-base" icon="knowledge" label="Knowledge Base" currentPath={pathname} />
@@ -81,19 +108,19 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
           <NavLink href="/docs" icon="docs" label="Docs" currentPath={pathname} />
         </nav>
 
-        <div className="p-4 border-t border-gray-100 dark:border-slate-700">
+        <div className="p-4 border-t border-slate-100 dark:border-slate-800">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-sm font-bold">
                 {user?.email?.charAt(0).toUpperCase() || "A"}
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
                   {user?.email?.split("@")[0] || "Admin"}
                 </p>
                 <div className="flex items-center gap-1.5">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  <p className="text-xs text-gray-400 dark:text-gray-500">Online</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500">Online</p>
                 </div>
               </div>
             </div>
@@ -125,7 +152,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto bg-[#f8fafc] dark:bg-slate-900">{children}</main>
+      <main className="flex-1 overflow-auto bg-[#f8fafc] dark:bg-slate-950">{children}</main>
     </div>
   );
 }
@@ -243,6 +270,16 @@ const NAV_ICONS: Record<string, (active: boolean) => React.ReactNode> = {
       />
     </svg>
   ),
+  calls: () => (
+    <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.8}
+        d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+      />
+    </svg>
+  ),
 };
 
 function NavLink({
@@ -250,14 +287,19 @@ function NavLink({
   icon,
   label,
   currentPath,
+  badgeCount = 0,
+  alertHighlight = false,
 }: {
   href: string;
   icon: string;
   label: string;
   currentPath: string;
+  badgeCount?: number;
+  alertHighlight?: boolean;
 }) {
   const isActive =
     href === "/" ? currentPath === "/" : currentPath.startsWith(href);
+  const showBadge = badgeCount > 0;
 
   return (
     <Link
@@ -265,11 +307,18 @@ function NavLink({
       className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
         isActive
           ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400"
-          : "text-gray-600 dark:text-gray-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-700 dark:hover:text-indigo-400"
+          : alertHighlight
+            ? "text-amber-800 dark:text-amber-200 bg-amber-50/90 dark:bg-amber-950/40 ring-1 ring-amber-300/80 dark:ring-amber-600/50 shadow-sm"
+            : "text-slate-600 dark:text-slate-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-700 dark:hover:text-indigo-400"
       }`}
     >
       {NAV_ICONS[icon]?.(isActive)}
-      {label}
+      <span className="flex-1 min-w-0">{label}</span>
+      {showBadge ? (
+        <span className="shrink-0 min-w-[1.35rem] h-5 px-1.5 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center tabular-nums">
+          {badgeCount > 9 ? "9+" : badgeCount}
+        </span>
+      ) : null}
     </Link>
   );
 }

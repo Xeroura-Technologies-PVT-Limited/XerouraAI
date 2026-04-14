@@ -99,7 +99,7 @@ class EscalationResolveView(APIView):
         conversation.save(update_fields=["status", "assigned_agent", "updated_at"])
 
         # Send the response back to the customer via their original channel
-        self._send_to_customer(conversation, response_text)
+        self._send_to_customer(self.request, conversation, response_text)
 
         logger.info(
             "Escalation %s resolved by %s for conversation %s",
@@ -118,13 +118,18 @@ class EscalationResolveView(APIView):
             status=status.HTTP_200_OK,
         )
 
-    def _send_to_customer(self, conversation, message: str):
+    def _send_to_customer(self, request, conversation, message: str):
         """Send a message back to the customer via their original channel."""
         try:
             if conversation.channel == "whatsapp":
                 from channels_app.whatsapp import send_whatsapp_message
 
-                send_whatsapp_message(conversation.sender_id, message)
+                bid = (conversation.whatsapp_phone_number_id or "").strip() or None
+                send_whatsapp_message(
+                    conversation.sender_id,
+                    message,
+                    business_phone_number_id=bid,
+                )
             elif conversation.channel == "email":
                 from channels_app.email_handler import send_email_reply
 
@@ -137,6 +142,12 @@ class EscalationResolveView(APIView):
                 from channels_app.telegram import send_telegram_message
 
                 send_telegram_message(conversation.sender_id, message)
+            elif conversation.channel == "voice":
+                from channels_app.voice_service import inject_agent_voice_message
+
+                sid = (conversation.last_voice_call_sid or "").strip()
+                if sid:
+                    inject_agent_voice_message(request, sid, message)
         except Exception as exc:
             logger.exception(
                 "Failed to send resolve message to customer %s: %s",
@@ -171,36 +182,55 @@ class ConversationReplyView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+        voice_meta: dict = {"agent_name": agent_name}
+        sent = False
+        if conversation.channel == "voice":
+            from channels_app.voice_service import inject_agent_voice_message
+
+            sid = (conversation.last_voice_call_sid or "").strip()
+            if sid:
+                sent = inject_agent_voice_message(
+                    self.request, sid, message_text
+                )
+            voice_meta["source"] = "voice_agent"
+            voice_meta["twilio_injected"] = sent
+
         # Save the agent message
         msg = Message.objects.create(
             conversation=conversation,
             role="agent",
             content=message_text,
-            metadata={"agent_name": agent_name},
+            metadata=voice_meta if conversation.channel == "voice" else {"agent_name": agent_name},
         )
 
         # Send to customer via their channel
-        try:
-            if conversation.channel == "whatsapp":
-                from channels_app.whatsapp import send_whatsapp_message
+        if conversation.channel != "voice":
+            try:
+                if conversation.channel == "whatsapp":
+                    from channels_app.whatsapp import send_whatsapp_message
 
-                send_whatsapp_message(conversation.sender_id, message_text)
-            elif conversation.channel == "email":
-                from channels_app.email_handler import send_email_reply
+                    bid = (conversation.whatsapp_phone_number_id or "").strip() or None
+                    send_whatsapp_message(
+                        conversation.sender_id,
+                        message_text,
+                        business_phone_number_id=bid,
+                    )
+                elif conversation.channel == "email":
+                    from channels_app.email_handler import send_email_reply
 
-                send_email_reply(
-                    to=conversation.sender_id,
-                    subject="Re: Support Request",
-                    body=message_text,
-                )
-            elif conversation.channel == "telegram":
-                from channels_app.telegram import send_telegram_message
+                    send_email_reply(
+                        to=conversation.sender_id,
+                        subject="Re: Support Request",
+                        body=message_text,
+                    )
+                elif conversation.channel == "telegram":
+                    from channels_app.telegram import send_telegram_message
 
-                send_telegram_message(conversation.sender_id, message_text)
-            sent = True
-        except Exception as exc:
-            logger.exception("Failed to send reply: %s", exc)
-            sent = False
+                    send_telegram_message(conversation.sender_id, message_text)
+                sent = True
+            except Exception as exc:
+                logger.exception("Failed to send reply: %s", exc)
+                sent = False
 
         return Response(
             {

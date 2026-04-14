@@ -38,3 +38,6 @@ dashboard/out/
 
 # Docker
 postgres_data/
+
+# Local docs (not pushed to GitHub)
+docs/

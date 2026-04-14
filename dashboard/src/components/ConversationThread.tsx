@@ -3,10 +3,11 @@
 import { useEffect, useRef } from "react";
 
 interface Message {
-  id: number;
+  id: string | number;
   role: "customer" | "ai" | "agent";
   content: string;
   created_at: string;
+  metadata?: Record<string, unknown>;
 }
 
 interface ConversationThreadProps {
@@ -42,6 +43,15 @@ const roleConfig: Record<
     isRight: true,
   },
 };
+
+function voiceSourceLabel(meta: Record<string, unknown> | undefined): string | null {
+  if (!meta?.source || typeof meta.source !== "string") return null;
+  const s = meta.source;
+  if (s === "voice_stt") return "Phone · STT";
+  if (s === "voice_ai") return "Phone · AI";
+  if (s === "voice_agent") return "Phone · Agent";
+  return null;
+}
 
 function formatTime(dateStr: string): string {
   const d = new Date(dateStr);
@@ -80,6 +90,7 @@ export default function ConversationThread({ messages }: ConversationThreadProps
         const prevMsg = messages[i - 1];
         const sameRole = prevMsg?.role === msg.role;
         const isFirstInGroup = !sameRole;
+        const voiceLabel = voiceSourceLabel(msg.metadata);
 
         return (
           <div key={msg.id}>
@@ -118,6 +129,11 @@ export default function ConversationThread({ messages }: ConversationThreadProps
                     ? isFirstInGroup ? "rounded-tr-sm" : "rounded-tr-sm"
                     : isFirstInGroup ? "rounded-tl-sm" : "rounded-tl-sm"
                 } px-4 py-2.5 relative`}>
+                  {voiceLabel ? (
+                    <span className="inline-block mb-1.5 text-[9px] font-semibold uppercase tracking-wide text-teal-600 dark:text-teal-400/90">
+                      {voiceLabel}
+                    </span>
+                  ) : null}
                   <p className={`text-[13px] leading-[1.6] ${config.textColor} whitespace-pre-wrap break-words`}>
                     {msg.content}
                   </p>

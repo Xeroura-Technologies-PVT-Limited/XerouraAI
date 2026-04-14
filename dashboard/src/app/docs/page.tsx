@@ -53,7 +53,7 @@ const SECTIONS: { title: string; icon: string; steps: Step[] }[] = [
     steps: [
       {
         title: "Clone the repository",
-        content: <Code>{`git clone https://github.com/pawanavantsa/xeroura-ai.git\ncd xeroura-ai`}</Code>,
+        content: <Code>{`git clone <your-fork-or-repo-url>\ncd <project-directory>`}</Code>,
       },
       {
         title: "Configure environment variables",
@@ -78,6 +78,11 @@ const SECTIONS: { title: string; icon: string; steps: Step[] }[] = [
                 ["WHATSAPP_VERIFY_TOKEN", "Any string you make up", "my-verify-token"],
                 ["TELEGRAM_BOT_TOKEN", "From @BotFather on Telegram", "123456:ABC..."],
                 ["OPENAI_API_KEY", "For real embeddings (optional)", "sk-..."],
+                ["PUBLIC_BASE_URL", "HTTPS origin Twilio/ngrok can reach (voice)", "https://abc.ngrok-free.app"],
+                ["TWILIO_ACCOUNT_SID", "Twilio Console", "AC..."],
+                ["TWILIO_AUTH_TOKEN", "Twilio Console", "..."],
+                ["ELEVENLABS_API_KEY", "Optional; neural voice for phone AI", ""],
+                ["VOICE_ESCALATION_FORWARD_NUMBER", "Optional; E.164 PSTN on human request", "+1555..."],
               ]}
             />
           </>
@@ -189,7 +194,98 @@ const SECTIONS: { title: string; icon: string; steps: Step[] }[] = [
     ],
   },
   {
-    title: "4. Connect Telegram",
+    title: "4. Connect Voice (phone calls)",
+    icon: "M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z",
+    steps: [
+      {
+        title: "Create a Twilio account and buy a Voice number",
+        content: (
+          <>
+            <ol className="list-decimal list-inside space-y-2">
+              <li>Sign up at <A href="https://www.twilio.com/try-twilio">twilio.com</A> and open the Console</li>
+              <li>Copy <strong>Account SID</strong> and <strong>Auth Token</strong></li>
+              <li>Get a phone number with <strong>Voice</strong> capability</li>
+            </ol>
+          </>
+        ),
+      },
+      {
+        title: "Expose your backend (ngrok) and set PUBLIC_BASE_URL",
+        content: (
+          <>
+            <Code>{`ngrok http 8000`}</Code>
+            <p className="mt-2">
+              Copy the HTTPS URL (e.g. <code>https://abc123.ngrok-free.app</code>). Add to <code>.env</code>:
+            </p>
+            <Code>{`PUBLIC_BASE_URL=https://abc123.ngrok-free.app`}</Code>
+            <p className="mt-2">Also add the ngrok hostname to <code>ALLOWED_HOSTS</code> (e.g. <code>.ngrok-free.app</code>).</p>
+            <Callout type="warning">
+              Twilio must fetch your AI audio and TwiML redirects from this URL. If <code>PUBLIC_BASE_URL</code> is wrong or empty behind ngrok, callers may hear silence after speaking.
+            </Callout>
+          </>
+        ),
+      },
+      {
+        title: "Add Twilio credentials to .env and restart backend",
+        content: (
+          <>
+            <Code>{`TWILIO_ACCOUNT_SID=ACxxxxxxxx\nTWILIO_AUTH_TOKEN=your_auth_token`}</Code>
+            <p className="mt-2">Restart Docker so the backend reloads env:</p>
+            <Code>{`docker compose up -d`}</Code>
+            <p className="mt-2">
+              Optional: <code>ELEVENLABS_API_KEY</code> and <code>ELEVENLABS_VOICE_ID</code> for nicer AI voice; otherwise Amazon Polly is used.
+            </p>
+          </>
+        ),
+      },
+      {
+        title: "Point your Twilio number at the webhook",
+        content: (
+          <>
+            <p>In Twilio: <strong>Phone Numbers → your number → Voice &amp; Fax</strong></p>
+            <p className="mt-2">
+              <strong>A call comes in</strong> → Webhook, <strong>POST</strong>, URL:
+            </p>
+            <Code>{`{PUBLIC_BASE_URL}/api/webhooks/voice/incoming/`}</Code>
+            <p className="mt-2">
+              Use the same <code>PUBLIC_BASE_URL</code> as in <code>.env</code> (no trailing slash before the path).
+            </p>
+            <p className="mt-2">
+              Dashboard shortcut: <strong>Settings → Voice (phone calls)</strong> shows the localhost URL pattern; swap in your ngrok host for real calls.
+            </p>
+          </>
+        ),
+      },
+      {
+        title: "Optional: forward to a human on the phone",
+        content: (
+          <>
+            <p>If the caller says they need a human (same phrases as chat escalation), you can optionally set:</p>
+            <Code>{`VOICE_ESCALATION_FORWARD_NUMBER=+15551234567`}</Code>
+            <p className="mt-2">Use E.164 format. Agents can also use <strong>Send</strong> on the voice ticket while the call is active to speak text on the line.</p>
+          </>
+        ),
+      },
+      {
+        title: "Test it!",
+        content: (
+          <>
+            <p>Call your Twilio number. You should hear a greeting, then speak; the AI answers using your knowledge base.</p>
+            <ol className="list-decimal list-inside space-y-1 mt-2">
+              <li>Check <code>docker compose logs backend -f</code> for errors</li>
+              <li>Open <strong>Calls</strong> in the sidebar (under Dashboard) for voice-only queue; <strong>Tickets</strong> also lists voice threads</li>
+              <li>When the caller asks for a human, the <strong>Calls</strong> nav item highlights — select the call and use <strong>Send to caller</strong></li>
+            </ol>
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              Deep dive: <code>docs/VOICE_AND_CALLS.md</code> in the repository.
+            </p>
+          </>
+        ),
+      },
+    ],
+  },
+  {
+    title: "5. Connect Telegram",
     icon: "M12 19l9 2-9-18-9 18 9-2zm0 0v-8",
     steps: [
       {
@@ -234,7 +330,7 @@ const SECTIONS: { title: string; icon: string; steps: Step[] }[] = [
     ],
   },
   {
-    title: "5. Connect Gmail",
+    title: "6. Connect Gmail",
     icon: "M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z",
     steps: [
       {
@@ -272,7 +368,7 @@ const SECTIONS: { title: string; icon: string; steps: Step[] }[] = [
     ],
   },
   {
-    title: "6. Add Knowledge Base",
+    title: "7. Add Knowledge Base",
     icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253",
     steps: [
       {
@@ -310,7 +406,7 @@ const SECTIONS: { title: string; icon: string; steps: Step[] }[] = [
     ],
   },
   {
-    title: "7. How It Works (Architecture)",
+    title: "8. How It Works (Architecture)",
     icon: "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10",
     steps: [
       {
@@ -348,7 +444,7 @@ const SECTIONS: { title: string; icon: string; steps: Step[] }[] = [
     ],
   },
   {
-    title: "8. API Reference",
+    title: "9. API Reference",
     icon: "M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4",
     steps: [
       {
@@ -400,6 +496,10 @@ const SECTIONS: { title: string; icon: string; steps: Step[] }[] = [
           <EndpointTable
             rows={[
               ["GET/POST", "/api/webhooks/whatsapp/", "WhatsApp Cloud API webhook"],
+              ["GET", "/api/voice/calls/", "Voice call queue + needs_human count (Calls UI)"],
+              ["POST", "/api/webhooks/voice/incoming/", "Twilio Voice — call start"],
+              ["POST", "/api/webhooks/voice/gather/", "Twilio Voice — speech results (do not set manually)"],
+              ["GET", "/api/media/voice/{uuid}/", "Short-lived TTS audio for Twilio Play"],
               ["POST", "/api/webhooks/telegram/", "Telegram Bot API webhook"],
               ["POST", "/api/webhooks/email/", "Email webhook (if using push)"],
             ]}
@@ -635,13 +735,14 @@ function FlowDiagram() {
 function ChannelCards() {
   const channels = [
     { name: "WhatsApp", icon: "💚", color: "from-green-400 to-emerald-500", desc: "Business Cloud API" },
+    { name: "Voice", icon: "📞", color: "from-teal-400 to-cyan-500", desc: "Twilio Voice" },
     { name: "Telegram", icon: "💙", color: "from-sky-400 to-blue-500", desc: "Bot API" },
     { name: "Email", icon: "📧", color: "from-red-400 to-rose-500", desc: "Gmail API" },
     { name: "Web Chat", icon: "🌐", color: "from-violet-400 to-purple-500", desc: "WebSocket" },
   ];
 
   return (
-    <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div className="mb-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
       {channels.map((ch) => (
         <div key={ch.name} className="relative overflow-hidden rounded-xl border border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 text-center group hover:shadow-md transition-shadow">
           <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${ch.color}`} />
@@ -710,6 +811,7 @@ export default function DocsPage() {
               "text-emerald-600 dark:text-emerald-400",
               "text-blue-600 dark:text-blue-400",
               "text-green-600 dark:text-green-400",
+              "text-teal-600 dark:text-teal-400",
               "text-sky-600 dark:text-sky-400",
               "text-red-600 dark:text-red-400",
               "text-violet-600 dark:text-violet-400",
@@ -735,7 +837,6 @@ export default function DocsPage() {
       {/* Footer */}
       <div className="mt-8 text-center py-6 border-t border-gray-100 dark:border-slate-700">
         <p className="text-xs text-gray-400 dark:text-gray-500">
-          Built for the <strong>pawanavantsa</strong> YouTube tutorial.{" "}
           <Link href="/" className="text-indigo-600 dark:text-indigo-400 hover:underline">Back to Dashboard</Link>
         </p>
       </div>

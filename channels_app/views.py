@@ -2,6 +2,8 @@ import logging
 
 from django.conf import settings
 from django.http import HttpResponse
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -24,6 +26,7 @@ from .whatsapp import parse_whatsapp_webhook, send_whatsapp_message
 logger = logging.getLogger(__name__)
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 class WhatsAppWebhookView(APIView):
     """
     WhatsApp Cloud API webhook endpoint.
@@ -52,7 +55,7 @@ class WhatsAppWebhookView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Check team configs in database
+        # Check team configs in database, then .env (WHATSAPP_VERIFY_TOKEN)
         token_matches = False
         try:
             from teams.models import TeamWhatsAppConfig
@@ -62,6 +65,11 @@ class WhatsAppWebhookView(APIView):
             ).exists()
         except Exception:
             pass
+
+        if not token_matches:
+            env_token = (getattr(settings, "WHATSAPP_VERIFY_TOKEN", None) or "").strip()
+            if env_token and token == env_token:
+                token_matches = True
 
         if token_matches:
             logger.info("WhatsApp webhook verified successfully.")
@@ -89,7 +97,12 @@ class WhatsAppWebhookView(APIView):
             # Not a user message (e.g., status update) — acknowledge silently
             return Response(status=status.HTTP_200_OK)
 
+        wa_phone_number_id = (
+            (unified_msg.metadata or {}).get("phone_number_id") or ""
+        ).strip() or None
+
         try:
+            from core.models import Conversation
             from core.views import process_message_internal
 
             result = process_message_internal(
@@ -99,11 +112,18 @@ class WhatsAppWebhookView(APIView):
                 channel="whatsapp",
             )
 
+            conv_id = result.get("conversation_id")
+            if wa_phone_number_id and conv_id:
+                Conversation.objects.filter(pk=conv_id).update(
+                    whatsapp_phone_number_id=wa_phone_number_id
+                )
+
             # Send AI response back — unless human_only mode (no response)
             if result.get("response"):
                 send_whatsapp_message(
                     phone_number=unified_msg.sender_id,
                     message=result["response"],
+                    business_phone_number_id=wa_phone_number_id,
                 )
 
         except Exception as exc:
@@ -112,6 +132,7 @@ class WhatsAppWebhookView(APIView):
             send_whatsapp_message(
                 phone_number=unified_msg.sender_id,
                 message="Sorry, something went wrong. Please try again later.",
+                business_phone_number_id=wa_phone_number_id,
             )
 
         return Response(status=status.HTTP_200_OK)

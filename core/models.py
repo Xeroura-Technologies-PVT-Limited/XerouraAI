@@ -36,6 +36,7 @@ class Conversation(models.Model):
         ("telegram", "Telegram"),
         ("messenger", "Messenger"),
         ("instagram", "Instagram"),
+        ("voice", "Voice (Phone)"),
     ]
     STATUS_CHOICES = [
         ("active", "Active"),
@@ -52,6 +53,18 @@ class Conversation(models.Model):
     )
     assigned_agent = models.CharField(max_length=255, blank=True, null=True)
     human_only = models.BooleanField(default=False)
+    last_voice_call_sid = models.CharField(
+        max_length=64,
+        blank=True,
+        default="",
+        help_text="Most recent Twilio CallSid for this thread (used to inject live agent audio).",
+    )
+    whatsapp_phone_number_id = models.CharField(
+        max_length=64,
+        blank=True,
+        default="",
+        help_text="Meta WhatsApp Cloud API phone_number_id this thread uses (for outbound replies).",
+    )
     tags = models.ManyToManyField(
         "Tag", through="ConversationTag", related_name="conversations", blank=True
     )

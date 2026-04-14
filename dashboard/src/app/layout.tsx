@@ -17,7 +17,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="min-h-screen bg-[#f8fafc] dark:bg-slate-900 transition-colors">
+      <body className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 transition-colors">
         <ThemeProvider>
           <AuthProvider>
             <NotificationProvider>

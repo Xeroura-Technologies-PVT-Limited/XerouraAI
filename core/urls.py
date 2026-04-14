@@ -8,6 +8,7 @@ urlpatterns = [
     path("process/", views.ProcessMessageView.as_view(), name="process-message"),
     path("knowledge/", views.KnowledgeBaseListCreateView.as_view(), name="knowledge-list-create"),
     path("conversations/", views.ConversationListView.as_view(), name="conversation-list"),
+    path("voice/calls/", views.VoiceCallsQueueView.as_view(), name="voice-calls-queue"),
     path("conversations/<uuid:pk>/", views.ConversationDetailView.as_view(), name="conversation-detail"),
     path("conversations/<uuid:pk>/toggle-human-only/", views.ToggleHumanOnlyView.as_view(), name="toggle-human-only"),
     # Scale features

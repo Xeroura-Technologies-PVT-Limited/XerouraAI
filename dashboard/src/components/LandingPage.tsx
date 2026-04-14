@@ -2,20 +2,49 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { useTheme } from "@/lib/theme";
+import { BrandMark } from "@/components/BrandMark";
+import { easeFluid, navTransition, scrollViewport, springSoft, staggerChildren } from "@/lib/motionPresets";
 import SupportFlowDiagram from "./SupportFlowDiagram";
 
 /* ── Fake chat demo messages ── */
 const DEMO_MESSAGES = [
   { role: "customer", text: "Hi, I was charged twice for my subscription last month. Can you help?" },
   { role: "ai", text: "I understand how frustrating that must be. Let me look into your billing records right away. Could you share your account email so I can pull up the details?" },
-  { role: "customer", text: "Sure, it's sarah@example.com" },
-  { role: "ai", text: "Thanks Sarah! I found the duplicate charge of $29.99 on March 3rd. I've initiated a refund — you should see it in 3-5 business days. Is there anything else I can help with?" },
+  { role: "customer", text: "Sure, it's pawan@example.com" },
+  { role: "ai", text: "Thanks Pawan! I found the duplicate charge of $29.99 on March 3rd. I've initiated a refund — you should see it in 3-5 business days. Is there anything else I can help with?" },
 ];
+
+/** Fade/slide in when the block scrolls into view; replays when scrolling back (unless reduced motion). */
+const scrollReveal = (reduced: boolean | null, i: number, y = 22) => ({
+  initial: reduced ? false : { opacity: 0, y },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: scrollViewport(reduced),
+  transition: reduced
+    ? { duration: 0 }
+    : { duration: 0.55, ease: easeFluid, delay: staggerChildren(reduced) * i },
+});
 
 export function LandingPage() {
   const { theme, toggleTheme } = useTheme();
+  const reducedMotion = useReducedMotion();
+  const { scrollY } = useScroll();
   const [demoChatVisible, setDemoChatVisible] = useState(3); // show first N messages
+
+  const parallax = !reducedMotion;
+  const blobRightY = useTransform(scrollY, [0, 520], [0, parallax ? 105 : 0]);
+  const blobLeftY = useTransform(scrollY, [0, 520], [0, parallax ? -82 : 0]);
+  const gridShiftY = useTransform(scrollY, [0, 420], [0, parallax ? 36 : 0]);
+  const navShadow = useTransform(
+    scrollY,
+    [0, 32, 120],
+    [
+      "0 0 0 0 rgba(15,23,42,0)",
+      "0 12px 40px -16px rgba(15, 23, 42, 0.07)",
+      "0 16px 48px -14px rgba(15, 23, 42, 0.09)",
+    ],
+  );
 
   // Animate showing messages
   const showNextMessage = () => {
@@ -27,108 +56,177 @@ export function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-900">
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 text-gray-900 dark:text-white antialiased selection:bg-indigo-500/20 selection:text-indigo-900 dark:selection:text-white">
       {/* ═══ Navigation ═══ */}
-      <nav className="border-b border-gray-100 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <motion.nav
+        initial={reducedMotion ? false : { opacity: 0, y: -14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={navTransition(reducedMotion)}
+        style={{ boxShadow: navShadow }}
+        className="sticky top-0 z-50 border-b border-slate-200/80 dark:border-slate-800/80 bg-white/75 dark:bg-slate-950/75 backdrop-blur-xl supports-[backdrop-filter]:bg-white/60"
+      >
+        <div className="max-w-7xl mx-auto px-6 h-[4.25rem] flex items-center justify-between">
+          <BrandMark size="md" />
+
+          <div className="hidden md:flex items-center gap-1">
+            {[
+              { href: "#features", label: "Features" },
+              { href: "#how-it-works", label: "How It Works" },
+              { href: "#tech-stack", label: "Tech Stack" },
+            ].map((l) => (
+              <motion.a
+                key={l.href}
+                href={l.href}
+                whileHover={reducedMotion ? undefined : { y: -1 }}
+                whileTap={reducedMotion ? undefined : { scale: 0.98 }}
+                className="text-sm text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-2 rounded-lg transition-colors"
+              >
+                {l.label}
+              </motion.a>
+            ))}
+          </div>
+
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
-            <span className="text-lg font-bold text-gray-900 dark:text-white">Xeroura AI</span>
-          </div>
-
-          <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">Features</a>
-            <a href="#how-it-works" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">How It Works</a>
-            <a href="#pricing" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">Pricing</a>
-            <a href="#tech-stack" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">Tech Stack</a>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
+            <motion.button
+              type="button"
               onClick={toggleTheme}
               title={theme === "dark" ? "Light mode" : "Dark mode"}
-              className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+              whileHover={reducedMotion ? undefined : { scale: 1.05 }}
+              whileTap={reducedMotion ? undefined : { scale: 0.95 }}
+              className="p-2.5 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
               {theme === "dark" ? (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
               ) : (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
               )}
-            </button>
-            <Link href="/login" className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-4 py-2 transition-colors">Login</Link>
-            <Link href="/signup" className="text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-lg transition-colors shadow-sm">Get Started</Link>
+            </motion.button>
+            <Link href="/login" className="text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white px-3 py-2 transition-colors">Login</Link>
+            <motion.div whileHover={reducedMotion ? undefined : { y: -1 }} whileTap={reducedMotion ? undefined : { scale: 0.98 }}>
+              <Link
+                href="/signup"
+                className="inline-block text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 px-4 py-2.5 rounded-xl transition-all shadow-md shadow-indigo-500/20 ring-1 ring-white/10"
+              >
+                Get Started
+              </Link>
+            </motion.div>
           </div>
         </div>
-      </nav>
+      </motion.nav>
 
       {/* ═══ Hero — Split: Left text, Right chat demo ═══ */}
-      <section className="pt-16 pb-20 px-6">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      <section className="relative overflow-hidden pt-14 pb-24 px-6">
+        <div className="pointer-events-none absolute inset-0 -z-10">
+          <motion.div
+            style={{ y: blobRightY }}
+            className="absolute -top-24 -right-24 h-[28rem] w-[28rem] rounded-full bg-gradient-to-br from-indigo-400/20 via-violet-400/15 to-transparent blur-3xl dark:from-indigo-500/15 dark:via-violet-500/10"
+            animate={reducedMotion ? undefined : { scale: [1, 1.07, 1], opacity: [0.45, 0.62, 0.45] }}
+            transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div
+            style={{ y: blobLeftY }}
+            className="absolute top-40 -left-32 h-[22rem] w-[22rem] rounded-full bg-gradient-to-tr from-teal-400/15 to-transparent blur-3xl dark:from-teal-500/10"
+            animate={reducedMotion ? undefined : { scale: [1, 1.05, 1], opacity: [0.35, 0.5, 0.35] }}
+            transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          />
+          <motion.div
+            style={{ y: gridShiftY }}
+            className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(51,65,85,0.35)_1px,transparent_1px),linear-gradient(to_bottom,rgba(51,65,85,0.35)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:linear-gradient(to_bottom,black,transparent)] opacity-40 dark:opacity-30"
+          />
+        </div>
+
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-14 lg:gap-16 items-center">
           {/* Left: Copy */}
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 text-xs font-medium mb-6">
-              <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-              Open Source &middot; Self-Hosted &middot; Multi-Channel
-            </div>
+          <div className="relative z-[1]">
+            <motion.h1
+              {...scrollReveal(reducedMotion, 0)}
+              className="text-[2.35rem] sm:text-5xl lg:text-[3.15rem] font-bold tracking-tight text-slate-900 dark:text-white leading-[1.1] mb-6"
+            >
+              AI Customer Support
+              <span className="block mt-2 bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-500 bg-clip-text text-transparent">
+                That Actually Works
+              </span>
+            </motion.h1>
 
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white leading-tight mb-6">
-              AI Customer Support<br />
-              <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">That Actually Works</span>
-            </h1>
-
-            <p className="text-lg text-gray-500 dark:text-gray-400 mb-8 leading-relaxed max-w-lg">
-              Handle <strong className="text-gray-900 dark:text-white">80% of support tickets</strong> automatically.
-              WhatsApp, Telegram, Email &amp; Web Chat — all feeding into one AI brain.
-              Replace <span className="line-through text-gray-400">$1,500/mo</span> tools for <strong className="text-emerald-600 dark:text-emerald-400">~$85/mo</strong>.
-            </p>
+            <motion.p
+              {...scrollReveal(reducedMotion, 1)}
+              className="text-lg sm:text-xl text-slate-600 dark:text-slate-300 mb-8 leading-relaxed max-w-xl"
+            >
+              Handle <span className="font-semibold text-slate-900 dark:text-white">90% of support tickets</span>{" "}
+              automatically. WhatsApp, Telegram, Email, Web Chat, and Phone (Twilio Voice) — all feeding into one AI
+              brain.
+            </motion.p>
 
             {/* Key stats */}
-            <div className="flex gap-6 mb-8">
+            <motion.div {...scrollReveal(reducedMotion, 2)} className="flex flex-wrap gap-8 mb-10">
               {[
-                { value: "80%", label: "Auto-resolved" },
+                { value: "90%", label: "Auto-resolved" },
                 { value: "<2s", label: "Response time" },
-                { value: "4", label: "Channels" },
-                { value: "$85", label: "Monthly cost" },
+                { value: "5", label: "Channels" },
               ].map((s) => (
                 <div key={s.label}>
-                  <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{s.value}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{s.label}</p>
+                  <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent tabular-nums">
+                    {s.value}
+                  </p>
+                  <p className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-1">
+                    {s.label}
+                  </p>
                 </div>
               ))}
-            </div>
+            </motion.div>
 
-            <div className="flex items-center gap-4 mb-8">
-              <Link href="/signup" className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-md">
-                Start Free
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
-              </Link>
-              <a href="#how-it-works" className="inline-flex items-center gap-2 px-6 py-3 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 font-medium rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
+            <motion.div {...scrollReveal(reducedMotion, 3)} className="flex items-center gap-4 mb-10">
+              <motion.a
+                href="#how-it-works"
+                whileHover={reducedMotion ? undefined : { scale: 1.02, y: -2 }}
+                whileTap={reducedMotion ? undefined : { scale: 0.98 }}
+                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-500/25 ring-1 ring-white/10 transition-all"
+              >
                 See How It Works
-              </a>
-            </div>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+              </motion.a>
+            </motion.div>
 
             {/* Channel badges */}
-            <div className="flex flex-wrap items-center gap-2">
+            <motion.div {...scrollReveal(reducedMotion, 4)} className="flex flex-wrap items-center gap-2">
               {[
-                { name: "WhatsApp", color: "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800" },
-                { name: "Telegram", color: "bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 border-sky-200 dark:border-sky-800" },
-                { name: "Email", color: "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800" },
-                { name: "Web Chat", color: "bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 border-violet-200 dark:border-violet-800" },
-              ].map((ch) => (
-                <span key={ch.name} className={`px-3 py-1 rounded-full text-xs font-medium border ${ch.color}`}>{ch.name}</span>
+                { name: "WhatsApp", color: "bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border-emerald-500/20" },
+                { name: "Telegram", color: "bg-sky-500/10 text-sky-800 dark:text-sky-300 border-sky-500/20" },
+                { name: "Email", color: "bg-rose-500/10 text-rose-800 dark:text-rose-300 border-rose-500/20" },
+                { name: "Web Chat", color: "bg-violet-500/10 text-violet-800 dark:text-violet-300 border-violet-500/20" },
+                { name: "Phone", color: "bg-teal-500/10 text-teal-800 dark:text-teal-300 border-teal-500/20" },
+              ].map((ch, bi) => (
+                <motion.span
+                  key={ch.name}
+                  initial={reducedMotion ? false : { opacity: 0, scale: 0.92 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={scrollViewport(reducedMotion)}
+                  transition={
+                    reducedMotion
+                      ? { duration: 0 }
+                      : { delay: 0.35 + bi * 0.05, duration: 0.4, ease: easeFluid }
+                  }
+                  whileHover={reducedMotion ? undefined : { y: -2, scale: 1.03 }}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-medium border backdrop-blur-sm ${ch.color}`}
+                >
+                  {ch.name}
+                </motion.span>
               ))}
-            </div>
+            </motion.div>
           </div>
 
           {/* Right: Chat demo widget */}
-          <div className="relative">
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-2xl overflow-hidden max-w-md mx-auto">
+          <motion.div
+            className="relative"
+            initial={reducedMotion ? false : { opacity: 0, y: 32, scale: 0.96 }}
+            whileInView={{ opacity: 1, y: 0, scale: 1 }}
+            viewport={scrollViewport(reducedMotion)}
+            transition={reducedMotion ? { duration: 0 } : { ...springSoft, delay: 0.12 }}
+          >
+            <div className="absolute -inset-1 rounded-[1.35rem] bg-gradient-to-br from-indigo-500/20 via-violet-500/10 to-teal-500/20 blur-sm dark:opacity-80" aria-hidden />
+            <div className="relative bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-2xl shadow-slate-900/10 dark:shadow-black/40 overflow-hidden max-w-md mx-auto ring-1 ring-slate-900/5 dark:ring-white/5">
               {/* Chat header */}
-              <div className="px-5 py-3.5 bg-indigo-600 flex items-center gap-3">
+              <div className="px-5 py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                 </div>
@@ -142,9 +240,16 @@ export function LandingPage() {
               </div>
 
               {/* Chat messages */}
-              <div className="px-4 py-5 space-y-3 min-h-[320px] bg-gray-50 dark:bg-slate-900/50">
+              <div className="px-4 py-5 space-y-3 min-h-[320px] bg-slate-50/90 dark:bg-slate-950/50">
                 {DEMO_MESSAGES.slice(0, demoChatVisible).map((msg, i) => (
-                  <div key={i} className={`flex ${msg.role === "ai" ? "justify-start" : "justify-end"}`}>
+                  <motion.div
+                    key={`${msg.role}-${i}-${msg.text.slice(0, 24)}`}
+                    layout={!reducedMotion}
+                    initial={reducedMotion ? false : { opacity: 0, y: 12, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.38, ease: easeFluid }}
+                    className={`flex ${msg.role === "ai" ? "justify-start" : "justify-end"}`}
+                  >
                     <div className={`max-w-[85%] px-3.5 py-2.5 rounded-2xl text-[13px] leading-relaxed ${
                       msg.role === "ai"
                         ? "bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 text-gray-700 dark:text-gray-300 rounded-bl-md"
@@ -158,7 +263,7 @@ export function LandingPage() {
                       )}
                       {msg.text}
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
 
                 {demoChatVisible < DEMO_MESSAGES.length && (
@@ -175,7 +280,7 @@ export function LandingPage() {
               </div>
 
               {/* Chat input */}
-              <div className="px-4 py-3 border-t border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800">
+              <div className="px-4 py-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
                 <button
                   onClick={showNextMessage}
                   className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 dark:bg-slate-700 rounded-xl text-sm text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors"
@@ -187,194 +292,253 @@ export function LandingPage() {
             </div>
 
             {/* Floating badge */}
-            <div className="absolute -bottom-4 -left-4 bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg hidden lg:block">
+            <motion.div
+              initial={reducedMotion ? false : { opacity: 0, x: -12, y: 8 }}
+              whileInView={{ opacity: 1, x: 0, y: 0 }}
+              viewport={scrollViewport(reducedMotion)}
+              transition={reducedMotion ? { duration: 0 } : { delay: 0.48, duration: 0.5, ease: easeFluid }}
+              className="absolute -bottom-4 -left-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-3.5 py-2 rounded-xl text-xs font-semibold shadow-lg shadow-emerald-500/25 ring-1 ring-white/20 hidden lg:block"
+            >
               Classified as: Billing
-            </div>
-            <div className="absolute -top-3 -right-3 bg-amber-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg hidden lg:block">
+            </motion.div>
+            <motion.div
+              initial={reducedMotion ? false : { opacity: 0, x: 12, y: -8 }}
+              whileInView={{ opacity: 1, x: 0, y: 0 }}
+              viewport={scrollViewport(reducedMotion)}
+              transition={reducedMotion ? { duration: 0 } : { delay: 0.55, duration: 0.5, ease: easeFluid }}
+              className="absolute -top-3 -right-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-3.5 py-2 rounded-xl text-xs font-semibold shadow-lg shadow-amber-500/25 ring-1 ring-white/20 hidden lg:block"
+            >
               Confidence: 94%
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
       {/* ═══ "The Problem" section — why this exists ═══ */}
-      <section className="py-16 px-6 bg-gray-50 dark:bg-slate-800/50 border-y border-gray-100 dark:border-slate-800">
+      <section className="py-20 px-6 border-y border-slate-200/80 dark:border-slate-800/80 bg-white/60 dark:bg-slate-900/40 backdrop-blur-sm">
         <div className="max-w-5xl mx-auto text-center">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-4">The 80/20 Approach to Support</h2>
-          <p className="text-gray-500 dark:text-gray-400 max-w-2xl mx-auto mb-10">
-            80% of support tickets are repetitive — billing questions, password resets, shipping status.
-            AI handles those instantly. Humans focus on the complex 20% that actually needs them.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
+          <motion.h2
+            initial={reducedMotion ? false : { opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={scrollViewport(reducedMotion)}
+            transition={{ duration: 0.55, ease: easeFluid }}
+            className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900 dark:text-white mb-4"
+          >
+            The 90/10 Approach to Support
+          </motion.h2>
+          <motion.p
+            initial={reducedMotion ? false : { opacity: 0, y: 14 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={scrollViewport(reducedMotion)}
+            transition={{ duration: 0.55, ease: easeFluid, delay: reducedMotion ? 0 : 0.06 }}
+            className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-12 text-lg leading-relaxed"
+          >
+            90% of support tickets are repetitive — billing questions, password resets, shipping status.
+            AI handles those instantly. Humans focus on the complex 10% that actually needs them.
+          </motion.p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {[
-              { icon: "🤖", title: "AI Handles 80%", desc: "Billing, shipping, FAQs, account questions — answered in seconds from your knowledge base", color: "border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-900/20" },
-              { icon: "👤", title: "Humans Handle 20%", desc: "Complex issues, angry customers, edge cases — with full AI-generated context & suggested replies", color: "border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/20" },
-              { icon: "🛡️", title: "3 Safety Layers", desc: "Anti-hallucination guardrails ensure AI never makes up policies, prices, or guarantees", color: "border-rose-200 dark:border-rose-800 bg-rose-50/50 dark:bg-rose-900/20" },
-            ].map((item) => (
-              <div key={item.title} className={`rounded-xl p-6 border ${item.color}`}>
+              { icon: "🤖", title: "AI Handles 90%", desc: "Billing, shipping, FAQs, account questions — answered in seconds from your knowledge base", ring: "from-indigo-500/20 to-violet-500/10", bg: "bg-white/80 dark:bg-slate-900/60" },
+              { icon: "👤", title: "Humans Handle 10%", desc: "Complex issues, angry customers, edge cases — with full AI-generated context & suggested replies", ring: "from-amber-500/20 to-orange-500/10", bg: "bg-white/80 dark:bg-slate-900/60" },
+              { icon: "🛡️", title: "3 Safety Layers", desc: "Anti-hallucination guardrails ensure AI never makes up policies, prices, or guarantees", ring: "from-rose-500/20 to-pink-500/10", bg: "bg-white/80 dark:bg-slate-900/60" },
+            ].map((item, ci) => (
+              <motion.div
+                key={item.title}
+                initial={reducedMotion ? false : { opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={scrollViewport(reducedMotion)}
+                transition={{ duration: 0.5, ease: easeFluid, delay: reducedMotion ? 0 : 0.08 + ci * 0.1 }}
+                whileHover={reducedMotion ? undefined : { y: -4, transition: { duration: 0.25, ease: easeFluid } }}
+                className={`relative rounded-2xl p-6 text-left border border-slate-200/90 dark:border-slate-700/80 shadow-lg shadow-slate-900/5 dark:shadow-black/20 ${item.bg}`}
+              >
+                <div
+                  className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${item.ring} opacity-60 -z-10`}
+                  aria-hidden
+                />
                 <span className="text-3xl mb-3 block">{item.icon}</span>
-                <h3 className="text-base font-bold text-gray-900 dark:text-white mb-2">{item.title}</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{item.desc}</p>
-              </div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2">{item.title}</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{item.desc}</p>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
       {/* ═══ Features Grid ═══ */}
-      <section id="features" className="py-20 px-6">
+      <section id="features" className="py-24 px-6 relative">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-700 to-transparent" aria-hidden />
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-14">
-            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 text-xs font-medium mb-4">Key Features</span>
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">Everything You Need</h2>
-            <p className="text-gray-500 dark:text-gray-400 max-w-xl mx-auto">Built with modern tools — no bloat, no vendor lock-in, fully open source.</p>
+          <div className="text-center mb-16">
+            <motion.span
+              initial={reducedMotion ? false : { opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={scrollViewport(reducedMotion)}
+              transition={{ duration: 0.5, ease: easeFluid }}
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-violet-500/10 text-violet-700 dark:text-violet-300 text-xs font-semibold tracking-wide uppercase border border-violet-500/15 mb-5"
+            >
+              Key Features
+            </motion.span>
+            <motion.h2
+              initial={reducedMotion ? false : { opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={scrollViewport(reducedMotion)}
+              transition={{ duration: 0.55, ease: easeFluid, delay: reducedMotion ? 0 : 0.04 }}
+              className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 dark:text-white mb-4"
+            >
+              Everything You Need
+            </motion.h2>
+            <motion.p
+              initial={reducedMotion ? false : { opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={scrollViewport(reducedMotion)}
+              transition={{ duration: 0.5, ease: easeFluid, delay: reducedMotion ? 0 : 0.08 }}
+              className="text-slate-600 dark:text-slate-400 max-w-xl mx-auto text-lg"
+            >
+              Built with modern tools — no bloat, no vendor lock-in, fully open source.
+            </motion.p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {FEATURES.map((feature) => (
-              <div key={feature.title} className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-800 transition-all group">
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-4 ${feature.iconBg} group-hover:scale-110 transition-transform`}>
+            {FEATURES.map((feature, fi) => (
+              <motion.div
+                key={feature.title}
+                initial={reducedMotion ? false : { opacity: 0, y: 22 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={scrollViewport(reducedMotion)}
+                transition={{ duration: 0.5, ease: easeFluid, delay: reducedMotion ? 0 : fi * 0.06 }}
+                whileHover={reducedMotion ? undefined : { y: -3 }}
+                className="group relative rounded-2xl p-6 border border-slate-200/90 dark:border-slate-700/80 bg-white/90 dark:bg-slate-900/50 shadow-sm hover:shadow-xl hover:shadow-indigo-500/5 dark:hover:shadow-black/30 hover:border-indigo-300/50 dark:hover:border-indigo-500/30 transition-all duration-300"
+              >
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${feature.iconBg} ring-1 ring-black/5 dark:ring-white/10 group-hover:scale-105 transition-transform duration-300`}>
                   {feature.icon}
                 </div>
-                <h3 className="text-base font-bold text-gray-900 dark:text-white mb-2">{feature.title}</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{feature.description}</p>
-              </div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2">{feature.title}</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{feature.description}</p>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
       {/* ═══ How It Works — Animated Flow Diagram ═══ */}
-      <div className="bg-gray-50/50 dark:bg-slate-800/30">
-        <SupportFlowDiagram />
+      <div className="relative bg-slate-100/80 dark:bg-slate-900/50 border-y border-slate-200/80 dark:border-slate-800/80">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent" aria-hidden />
+        <motion.div
+          initial={reducedMotion ? false : { opacity: 0, y: 28 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={scrollViewport(reducedMotion)}
+          transition={{ duration: 0.65, ease: easeFluid }}
+        >
+          <SupportFlowDiagram />
+        </motion.div>
       </div>
 
       {/* ═══ Tech Stack ═══ */}
-      <section id="tech-stack" className="py-20 px-6">
+      <section id="tech-stack" className="py-24 px-6">
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400 text-xs font-medium mb-4">Under The Hood</span>
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">Built With</h2>
+          <div className="text-center mb-14">
+            <motion.span
+              initial={reducedMotion ? false : { opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={scrollViewport(reducedMotion)}
+              transition={{ duration: 0.45, ease: easeFluid }}
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 text-cyan-800 dark:text-cyan-300 text-xs font-semibold tracking-wide uppercase border border-cyan-500/15 mb-5"
+            >
+              Under The Hood
+            </motion.span>
+            <motion.h2
+              initial={reducedMotion ? false : { opacity: 0, y: 14 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={scrollViewport(reducedMotion)}
+              transition={{ duration: 0.5, ease: easeFluid, delay: reducedMotion ? 0 : 0.05 }}
+              className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 dark:text-white mb-3"
+            >
+              Built With
+            </motion.h2>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {TECH_STACK.map((tech) => (
-              <div key={tech.name} className="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4 text-center hover:shadow-md transition-shadow">
+            {TECH_STACK.map((tech, ti) => (
+              <motion.div
+                key={tech.name}
+                initial={reducedMotion ? false : { opacity: 0, y: 18 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={scrollViewport(reducedMotion)}
+                transition={{ duration: 0.45, ease: easeFluid, delay: reducedMotion ? 0 : ti * 0.05 }}
+                whileHover={reducedMotion ? undefined : { y: -3 }}
+                className="rounded-2xl border border-slate-200/90 dark:border-slate-700/80 bg-white/90 dark:bg-slate-900/40 p-5 text-center hover:shadow-lg hover:shadow-slate-900/5 dark:hover:shadow-black/30 transition-all duration-300"
+              >
                 <span className="text-2xl mb-2 block">{tech.icon}</span>
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">{tech.name}</p>
-                <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">{tech.role}</p>
-              </div>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">{tech.name}</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-500 mt-1">{tech.role}</p>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ═══ Pricing Comparison ═══ */}
-      <section id="pricing" className="py-20 px-6 bg-gray-50/50 dark:bg-slate-800/50">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-14">
-            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-medium mb-4">Save 90%+</span>
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">Stop Overpaying for Support Tools</h2>
-            <p className="text-gray-500 dark:text-gray-400">Self-hosted means no per-seat fees, no per-resolution charges, no surprises.</p>
-          </div>
-
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-700/30">
-                  <th className="text-left text-sm font-semibold text-gray-900 dark:text-white px-6 py-4">Platform</th>
-                  <th className="text-left text-sm font-semibold text-gray-900 dark:text-white px-6 py-4">Pricing</th>
-                  <th className="text-left text-sm font-semibold text-gray-900 dark:text-white px-6 py-4">Notes</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50 dark:divide-slate-700/50">
-                <tr className="hover:bg-gray-50/50 dark:hover:bg-slate-700/20"><td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300 font-medium">Intercom</td><td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">$79/seat/mo + $0.99/resolution</td><td className="px-6 py-4 text-sm text-gray-400 dark:text-gray-500">Costs balloon with volume</td></tr>
-                <tr className="hover:bg-gray-50/50 dark:hover:bg-slate-700/20"><td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300 font-medium">Zendesk</td><td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">$55 - $115/agent/mo</td><td className="px-6 py-4 text-sm text-gray-400 dark:text-gray-500">AI add-on costs extra</td></tr>
-                <tr className="hover:bg-gray-50/50 dark:hover:bg-slate-700/20"><td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300 font-medium">Freshdesk</td><td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">$49 - $79/agent/mo</td><td className="px-6 py-4 text-sm text-gray-400 dark:text-gray-500">Limited AI features</td></tr>
-                <tr className="bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-l-indigo-600">
-                  <td className="px-6 py-5 text-sm font-bold text-indigo-700 dark:text-indigo-400 flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-lg bg-indigo-600 flex items-center justify-center"><svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div>
-                    Xeroura AI
-                  </td>
-                  <td className="px-6 py-5 text-lg font-bold text-indigo-700 dark:text-indigo-400">~$85/mo <span className="text-xs font-normal">total</span></td>
-                  <td className="px-6 py-5 text-sm text-indigo-600 dark:text-indigo-400 font-medium">Self-hosted, unlimited agents, unlimited tickets</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-4">Claude API ~$50-60/mo + VPS hosting ~$20/mo + domain ~$5/mo. No per-seat or per-resolution fees.</p>
-        </div>
-      </section>
-
-      {/* ═══ CTA ═══ */}
-      <section className="py-20 px-6">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">Ready to build your AI support agent?</h2>
-          <p className="text-lg text-gray-500 dark:text-gray-400 mb-8 max-w-lg mx-auto">3 commands to deploy. Connect WhatsApp, Telegram, or Email in minutes.</p>
-          <div className="flex items-center justify-center gap-4">
-            <Link href="/signup" className="inline-flex items-center gap-2 px-8 py-3.5 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-md text-base">
-              Get Started Free
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
-            </Link>
-            <Link href="/docs" className="inline-flex items-center gap-2 px-8 py-3.5 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 font-medium rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-base">
-              Read Docs
-            </Link>
-          </div>
-        </div>
-      </section>
-
       {/* ═══ Footer ═══ */}
-      <footer className="border-t border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-900 pt-12 pb-8 px-6">
+      <motion.footer
+        initial={reducedMotion ? false : { opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={scrollViewport(reducedMotion)}
+        transition={{ duration: 0.6, ease: easeFluid }}
+        className="border-t border-slate-200/90 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-950 pt-14 pb-10 px-6"
+      >
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mb-12">
             <div className="col-span-2 md:col-span-1">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center"><svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div>
-                <span className="text-sm font-bold text-gray-900 dark:text-white">Xeroura AI</span>
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-md shadow-indigo-500/20">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                </div>
+                <span className="text-sm font-semibold text-slate-900 dark:text-white">Xeroura AI</span>
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">AI-powered multi-channel customer support. Handle 80% of tickets automatically.</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-[16rem]">
+                AI-powered multi-channel customer support. Handle 90% of tickets automatically.
+              </p>
             </div>
             <div>
-              <h4 className="text-xs font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-3">Product</h4>
+              <h4 className="text-xs font-semibold text-slate-900 dark:text-white uppercase tracking-wider mb-3">Product</h4>
               <ul className="space-y-2">
-                <li><a href="#features" className="text-sm text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Features</a></li>
-                <li><a href="#pricing" className="text-sm text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Pricing</a></li>
-                <li><a href="#how-it-works" className="text-sm text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">How It Works</a></li>
-                <li><Link href="/docs" className="text-sm text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Documentation</Link></li>
+                <li><a href="#features" className="text-sm text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Features</a></li>
+                <li><a href="#how-it-works" className="text-sm text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">How It Works</a></li>
+                <li><Link href="/docs" className="text-sm text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Documentation</Link></li>
               </ul>
             </div>
             <div>
-              <h4 className="text-xs font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-3">Channels</h4>
+              <h4 className="text-xs font-semibold text-slate-900 dark:text-white uppercase tracking-wider mb-3">Channels</h4>
               <ul className="space-y-2">
-                <li><span className="text-sm text-gray-500 dark:text-gray-400">WhatsApp Business</span></li>
-                <li><span className="text-sm text-gray-500 dark:text-gray-400">Telegram</span></li>
-                <li><span className="text-sm text-gray-500 dark:text-gray-400">Gmail / Email</span></li>
-                <li><span className="text-sm text-gray-500 dark:text-gray-400">Web Chat Widget</span></li>
+                <li><span className="text-sm text-slate-500 dark:text-slate-400">WhatsApp Business</span></li>
+                <li><span className="text-sm text-slate-500 dark:text-slate-400">Telegram</span></li>
+                <li><span className="text-sm text-slate-500 dark:text-slate-400">Gmail / Email</span></li>
+                <li><span className="text-sm text-slate-500 dark:text-slate-400">Web Chat Widget</span></li>
+                <li><span className="text-sm text-slate-500 dark:text-slate-400">Phone (Twilio Voice)</span></li>
               </ul>
             </div>
             <div>
-              <h4 className="text-xs font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-3">Legal</h4>
+              <h4 className="text-xs font-semibold text-slate-900 dark:text-white uppercase tracking-wider mb-3">Legal</h4>
               <ul className="space-y-2">
-                <li><Link href="/privacy" className="text-sm text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Privacy Policy</Link></li>
-                <li><Link href="/terms" className="text-sm text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Terms of Service</Link></li>
+                <li><Link href="/privacy" className="text-sm text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Privacy Policy</Link></li>
+                <li><Link href="/terms" className="text-sm text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Terms of Service</Link></li>
               </ul>
             </div>
           </div>
-          <div className="pt-6 border-t border-gray-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-3">
-            <p className="text-xs text-gray-400 dark:text-gray-500">&copy; {new Date().getFullYear()} Xeroura AI. Built for <strong>pawanavantsa</strong> YouTube tutorial.</p>
+          <div className="pt-6 border-t border-slate-200/90 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-3">
+            <p className="text-xs text-slate-500 dark:text-slate-500">&copy; {new Date().getFullYear()} Xeroura AI</p>
             <div className="flex items-center gap-4">
-              <Link href="/privacy" className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Privacy</Link>
-              <Link href="/terms" className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Terms</Link>
+              <Link href="/privacy" className="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">Privacy</Link>
+              <Link href="/terms" className="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">Terms</Link>
             </div>
           </div>
         </div>
-      </footer>
+      </motion.footer>
     </div>
   );
 }
 
 /* ── Feature data ── */
 const FEATURES = [
-  { title: "Multi-Channel Support", description: "WhatsApp, Telegram, Email, and Web Chat — all conversations flow into one unified dashboard.", iconBg: "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" /></svg> },
+  { title: "Multi-Channel Support", description: "WhatsApp, Telegram, Email, Web Chat, and Phone (Twilio Voice) — all conversations flow into one unified dashboard.", iconBg: "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" /></svg> },
   { title: "AI Classification", description: "Claude Haiku auto-routes tickets — billing, technical, account, or complaint — with confidence scoring.", iconBg: "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg> },
   { title: "RAG Responses", description: "Claude Sonnet generates answers using your knowledge base via pgvector semantic search. No hallucinations.", iconBg: "bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg> },
   { title: "Smart Escalation", description: "Auto-escalates when confidence < 70%, customer is frustrated, or asks for a human. Full context handoff.", iconBg: "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg> },

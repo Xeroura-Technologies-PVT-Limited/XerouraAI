@@ -87,6 +87,38 @@ export default function SettingsPage() {
             </svg>
           </Link>
 
+          {/* Phone (Twilio Voice) */}
+          <Link
+            href="/settings/voice"
+            className="flex items-center justify-between p-4 rounded-lg border border-gray-100 dark:border-slate-700 hover:border-indigo-200 dark:hover:border-indigo-800 hover:bg-indigo-50/30 dark:hover:bg-indigo-900/20 transition-colors group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-lg bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center">
+                <svg
+                  className="w-5 h-5 text-teal-600 dark:text-teal-400"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">Phone</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Twilio Voice — inbound calls, webhooks, and environment variables
+                </p>
+              </div>
+            </div>
+            <svg
+              className="w-5 h-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+
           {/* Gmail */}
           <Link
             href="/settings/gmail"

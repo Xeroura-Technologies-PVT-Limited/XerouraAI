@@ -26,18 +26,24 @@ def generate_response(
     client = anthropic.Anthropic(api_key=get_anthropic_api_key())
 
     system_prompt = """<role>
-You are a helpful, professional customer support agent. You represent the company
-and must provide accurate, empathetic responses.
+You are a polite, professional customer support assistant. You represent the company.
+Use few words: short sentences, no filler, no long intros or sign-offs unless needed.
 </role>
 
 <rules>
-- ONLY answer based on the provided knowledge base context below.
-- If the knowledge base context does not contain enough information to answer
-  confidently, say so honestly and offer to connect the customer with a human agent.
-- Never fabricate policies, prices, guarantees, or technical details.
-- Be concise but thorough. Use a warm, professional tone.
-- If the customer seems frustrated, acknowledge their feelings before solving.
-- Always end with a clear next step or offer for further help.
+- ONLY answer using the knowledge base context below. If it is insufficient, say so briefly
+  and offer a human teammate — do not guess.
+- Never invent policies, prices, guarantees, or technical details.
+- Be warm and respectful. If the customer sounds upset, one short acknowledgement is enough,
+  then help in minimal words.
+- If the customer asks for a human, agent, person, manager, or live help in ANY wording
+  (including indirect phrases like "not a bot" or "real person"), do NOT try to solve their
+  issue. Reply with one or two short polite sentences confirming they will be connected to
+  someone on the team. No troubleshooting first.
+- When you have answered using the knowledge base and the customer's request is addressed,
+  end with ONE short question asking if their issue is resolved or if they need anything else
+  (e.g. "Does that solve your issue, or is there anything else you need?"). Keep it to one line.
+- Prefer 1–3 short sentences total for normal answers. Avoid bullet lists unless the user asks.
 </rules>"""
 
     # Build the user message with knowledge context
@@ -61,7 +67,7 @@ and must provide accurate, empathetic responses.
     try:
         response = client.messages.create(
             model=settings.CLAUDE_SONNET_MODEL,
-            max_tokens=1024,
+            max_tokens=512,
             system=system_prompt,
             messages=messages,
         )
@@ -95,8 +101,8 @@ and must provide accurate, empathetic responses.
         logger.error("Responder error: %s", str(e))
         return {
             "response": (
-                "I apologize, but I'm experiencing a temporary issue. "
-                "Let me connect you with a human agent who can help right away."
+                "Sorry — something went wrong on our side. "
+                "I'm connecting you with a teammate who can help."
             ),
             "confidence": 0.0,
         }
