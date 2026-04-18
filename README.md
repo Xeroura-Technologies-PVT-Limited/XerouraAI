@@ -428,21 +428,6 @@ xeroura-ai/
 
 ---
 
-## Contributing
-
-1. Fork the repo
-2. Create a feature branch: `git checkout -b feature/my-feature`
-3. Commit your changes: `git commit -m 'Add my feature'`
-4. Push: `git push origin feature/my-feature`
-5. Open a Pull Request
-
----
-
-## License
-
-MIT — use it, modify it, sell it as a service, build on top of it.
-
----
 
 ## Star History
 
