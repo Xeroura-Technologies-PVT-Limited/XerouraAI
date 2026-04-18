@@ -1,7 +1,8 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react";
-import { API_URL } from "@/lib/api";
+import { API_URL, bearerHeaders } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 
 interface Notification {
   id: string;
@@ -75,10 +76,21 @@ function requestBrowserNotification(title: string, body: string) {
 }
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
+  const { token, team, isLoading } = useAuth();
+  const teamId = team?.id ?? null;
+
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const lastTicketCountRef = useRef<number | null>(null);
   const lastEscalatedCountRef = useRef<number | null>(null);
+
+  // Baselines must be per session + team; otherwise counts from another account/team
+  // cause false "new ticket" alerts when the API returns a different team's stats.
+  useEffect(() => {
+    lastTicketCountRef.current = null;
+    lastEscalatedCountRef.current = null;
+    setNotifications([]);
+  }, [token, teamId]);
 
   // Load sound preference
   useEffect(() => {
@@ -119,10 +131,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     [soundEnabled]
   );
 
-  // Poll for new tickets/escalations every 10 seconds
+  // Poll for new tickets/escalations every 10 seconds (only when logged in; stats are team-scoped)
   useEffect(() => {
+    if (isLoading || !token) return;
+
     const poll = () => {
-      fetch(`${API_URL}/api/escalations/dashboard/stats/`)
+      fetch(`${API_URL}/api/escalations/dashboard/stats/`, {
+        headers: bearerHeaders(),
+      })
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
           if (!data) return;
@@ -166,7 +182,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     poll();
     const interval = setInterval(poll, 10000);
     return () => clearInterval(interval);
-  }, [addNotification]);
+  }, [addNotification, isLoading, token, teamId]);
 
   // Update page title with unread count
   useEffect(() => {

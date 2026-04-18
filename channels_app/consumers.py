@@ -1,5 +1,6 @@
 import json
 import logging
+from urllib.parse import parse_qs
 
 from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
@@ -49,6 +50,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
             else f"chat_{id(self)}"
         )
 
+        raw_qs = self.scope.get("query_string", b"").decode()
+        qs = parse_qs(raw_qs)
+        team_id = (qs.get("team") or [None])[0]
+        self.team_id = team_id.strip() if team_id else None
+
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
 
@@ -92,12 +98,36 @@ class ChatConsumer(AsyncWebsocketConsumer):
         try:
             # Process through AI brain
             from core.views import process_message_internal
+            from teams.tenant import get_default_team
+
+            team = None
+            if self.team_id:
+
+                def _load_team():
+                    from teams.models import Team
+
+                    return Team.objects.filter(pk=self.team_id).first()
+
+                team = await sync_to_async(_load_team)()
+            if team is None:
+                team = await sync_to_async(get_default_team)()
+            if team is None:
+                await self.send(
+                    text_data=json.dumps(
+                        {
+                            "type": "error",
+                            "message": "Chat is not configured (no team).",
+                        }
+                    )
+                )
+                return
 
             result = await sync_to_async(process_message_internal)(
                 message=message,
                 sender_id=sender_id,
                 sender_name=sender_name,
                 channel="webchat",
+                team=team,
             )
 
             # Update conversation_id if this was a new conversation

@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.models import Conversation, Message
+from teams.permissions import HasTeamContext
 
 from .models import Escalation
 from .serializers import (
@@ -25,10 +26,13 @@ class EscalationListView(generics.ListAPIView):
         resolved (bool): Filter by resolved status. Omit to return all.
     """
 
+    permission_classes = [HasTeamContext]
     serializer_class = EscalationListSerializer
 
     def get_queryset(self):
-        queryset = Escalation.objects.select_related("conversation").all()
+        queryset = Escalation.objects.select_related("conversation").filter(
+            conversation__team=self.request.team
+        )
 
         resolved_param = self.request.query_params.get("resolved")
         if resolved_param is not None:
@@ -44,8 +48,13 @@ class EscalationDetailView(generics.RetrieveUpdateAPIView):
     Includes full conversation data with messages for the detail view.
     """
 
-    queryset = Escalation.objects.select_related("conversation").all()
+    permission_classes = [HasTeamContext]
     serializer_class = EscalationSerializer
+
+    def get_queryset(self):
+        return Escalation.objects.select_related("conversation").filter(
+            conversation__team=self.request.team
+        )
 
 
 class EscalationResolveView(APIView):
@@ -56,12 +65,16 @@ class EscalationResolveView(APIView):
         response (str): The response message to send to the customer.
     """
 
+    permission_classes = [HasTeamContext]
+
     def post(self, request, pk):
         serializer = EscalationResolveSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         try:
-            escalation = Escalation.objects.select_related("conversation").get(pk=pk)
+            escalation = Escalation.objects.select_related("conversation").get(
+                pk=pk, conversation__team=request.team
+            )
         except Escalation.DoesNotExist:
             return Response(
                 {"error": "Escalation not found."},
@@ -164,6 +177,8 @@ class ConversationReplyView(APIView):
         agent_name (str, optional): Name of the agent. Defaults to 'Dashboard Agent'.
     """
 
+    permission_classes = [HasTeamContext]
+
     def post(self, request, pk):
         message_text = request.data.get("message", "").strip()
         agent_name = request.data.get("agent_name", "Dashboard Agent")
@@ -175,7 +190,7 @@ class ConversationReplyView(APIView):
             )
 
         try:
-            conversation = Conversation.objects.get(pk=pk)
+            conversation = Conversation.objects.get(pk=pk, team=request.team)
         except Conversation.DoesNotExist:
             return Response(
                 {"error": "Conversation not found."},
@@ -255,12 +270,15 @@ class DashboardStatsView(APIView):
         channel_breakdown: Dict with counts per channel.
     """
 
+    permission_classes = [HasTeamContext]
+
     def get(self, request):
         today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        team = request.team
 
         # Total conversations created today
         today_conversations = Conversation.objects.filter(
-            created_at__gte=today_start
+            team=team, created_at__gte=today_start
         )
         total_tickets_today = today_conversations.count()
 
@@ -286,10 +304,10 @@ class DashboardStatsView(APIView):
 
         # Average response time (seconds) — time between customer message
         # and the next AI/agent message in today's conversations
-        avg_response_time = self._calculate_avg_response_time(today_start)
+        avg_response_time = self._calculate_avg_response_time(today_start, team)
 
         # Overall stats (all-time)
-        all_conversations = Conversation.objects.all()
+        all_conversations = Conversation.objects.filter(team=team)
         total_tickets = all_conversations.count()
         total_open = all_conversations.filter(status__in=["active", "escalated"]).count()
         total_escalated = all_conversations.filter(status="escalated").count()
@@ -298,6 +316,7 @@ class DashboardStatsView(APIView):
         # Recent escalations for dashboard list
         recent_escalations = list(
             Escalation.objects.select_related("conversation")
+            .filter(conversation__team=team)
             .order_by("-created_at")[:10]
             .values(
                 "id",
@@ -322,7 +341,9 @@ class DashboardStatsView(APIView):
 
         # Week stats
         week_start = today_start - timezone.timedelta(days=7)
-        total_week = Conversation.objects.filter(created_at__gte=week_start).count()
+        total_week = Conversation.objects.filter(
+            team=team, created_at__gte=week_start
+        ).count()
 
         # All-time channel breakdown (for analytics page)
         all_channel_breakdown = dict(
@@ -366,7 +387,9 @@ class DashboardStatsView(APIView):
             status=status.HTTP_200_OK,
         )
 
-    def _calculate_avg_response_time(self, since: timezone.datetime) -> float | None:
+    def _calculate_avg_response_time(
+        self, since: timezone.datetime, team
+    ) -> float | None:
         """Calculate average response time in seconds for conversations since a given time.
 
         Pairs each customer message with the next AI/agent message in the same
@@ -375,6 +398,7 @@ class DashboardStatsView(APIView):
         customer_messages = (
             Message.objects.filter(
                 role="customer",
+                conversation__team=team,
                 conversation__created_at__gte=since,
             )
             .select_related("conversation")

@@ -1,4 +1,5 @@
 import logging
+import uuid
 
 from django.db import connection
 
@@ -7,38 +8,43 @@ logger = logging.getLogger(__name__)
 
 def search_knowledge_base(
     query_embedding: list[float],
-    category: str = None,
+    *,
+    team_id: uuid.UUID | str,
+    category: str | None = None,
     limit: int = 3,
 ) -> list:
-    """Search the knowledge base using pgvector cosine distance.
+    """Search the knowledge base using pgvector cosine distance, scoped to a team.
 
     Args:
         query_embedding: A 1536-dimensional embedding vector for the query.
+        team_id: Team that owns KB rows.
         category: Optional category filter (billing/technical/account/general).
-        limit: Maximum number of results to return.
+        limit: Maximum number of results.
 
     Returns:
         List of content strings from the most relevant knowledge base entries.
     """
     embedding_str = "[" + ",".join(str(v) for v in query_embedding) + "]"
+    tid = str(team_id)
 
     if category:
         sql = """
             SELECT content
             FROM knowledge_base
-            WHERE category = %s
+            WHERE team_id = %s AND category = %s
             ORDER BY embedding <=> %s::vector
             LIMIT %s
         """
-        params = [category, embedding_str, limit]
+        params = [tid, category, embedding_str, limit]
     else:
         sql = """
             SELECT content
             FROM knowledge_base
+            WHERE team_id = %s
             ORDER BY embedding <=> %s::vector
             LIMIT %s
         """
-        params = [embedding_str, limit]
+        params = [tid, embedding_str, limit]
 
     try:
         with connection.cursor() as cursor:

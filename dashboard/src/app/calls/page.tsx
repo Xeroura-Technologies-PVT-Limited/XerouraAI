@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import ConversationThread from "@/components/ConversationThread";
-import { API_URL } from "@/lib/api";
+import { API_URL, bearerHeaders } from "@/lib/api";
 
 interface QueueRow {
   id: string;
@@ -52,7 +52,7 @@ export default function CallsPage() {
   const [toast, setToast] = useState<string | null>(null);
 
   const fetchQueue = useCallback(() => {
-    fetch(`${API_URL}/api/voice/calls/`)
+    fetch(`${API_URL}/api/voice/calls/`, { headers: bearerHeaders() })
       .then((r) => r.json())
       .then((data) => {
         setQueue(Array.isArray(data.calls) ? data.calls : []);
@@ -67,7 +67,7 @@ export default function CallsPage() {
 
   const fetchDetail = useCallback((id: string) => {
     setLoadingDetail(true);
-    fetch(`${API_URL}/api/conversations/${id}/`)
+    fetch(`${API_URL}/api/conversations/${id}/`, { headers: bearerHeaders() })
       .then((r) => r.json())
       .then((data) => setDetail(data))
       .catch(() => setDetail(null))
@@ -114,7 +114,7 @@ export default function CallsPage() {
     try {
       const res = await fetch(`${API_URL}/api/conversations/${detail.id}/reply/`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...bearerHeaders() },
         body: JSON.stringify({ message: replyText.trim(), agent_name: "Voice agent" }),
       });
       const data = await res.json().catch(() => ({}));
@@ -138,7 +138,7 @@ export default function CallsPage() {
     try {
       const res = await fetch(`${API_URL}/api/conversations/${detail.id}/toggle-human-only/`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...bearerHeaders() },
         body: JSON.stringify({ human_only: !detail.human_only }),
       });
       if (res.ok) {
@@ -157,7 +157,7 @@ export default function CallsPage() {
     try {
       const res = await fetch(`${API_URL}/api/escalations/${detail.escalation_id}/resolve/`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...bearerHeaders() },
         body: JSON.stringify({
           agent_name: "Voice agent",
           response: replyText.trim(),

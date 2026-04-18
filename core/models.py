@@ -13,6 +13,11 @@ class KnowledgeBase(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    team = models.ForeignKey(
+        "teams.Team",
+        on_delete=models.CASCADE,
+        related_name="knowledge_entries",
+    )
     content = models.TextField()
     embedding = VectorField(dimensions=1536)
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
@@ -45,6 +50,11 @@ class Conversation(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    team = models.ForeignKey(
+        "teams.Team",
+        on_delete=models.CASCADE,
+        related_name="conversations",
+    )
     channel = models.CharField(max_length=20, choices=CHANNEL_CHOICES)
     sender_id = models.CharField(max_length=255)
     sender_name = models.CharField(max_length=255, blank=True, default="")
@@ -76,9 +86,9 @@ class Conversation(models.Model):
         ordering = ["-updated_at"]
         constraints = [
             models.UniqueConstraint(
-                fields=["sender_id", "channel"],
+                fields=["team", "sender_id", "channel"],
                 condition=models.Q(status__in=["active", "escalated"]),
-                name="unique_active_conversation_per_sender_channel",
+                name="unique_active_conversation_per_team_sender_channel",
             )
         ]
         indexes = [
@@ -91,13 +101,24 @@ class Conversation(models.Model):
 
 class Tag(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(max_length=50, unique=True)
+    team = models.ForeignKey(
+        "teams.Team",
+        on_delete=models.CASCADE,
+        related_name="tags",
+    )
+    name = models.CharField(max_length=50)
     color = models.CharField(max_length=7, default="#6366f1")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = "tags"
         ordering = ["name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["team", "name"],
+                name="core_tag_team_name_uniq",
+            ),
+        ]
 
     def __str__(self):
         return self.name
@@ -160,10 +181,15 @@ class InternalNote(models.Model):
 
 class CannedResponse(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    team = models.ForeignKey(
+        "teams.Team",
+        on_delete=models.CASCADE,
+        related_name="canned_responses",
+    )
     title = models.CharField(max_length=200)
     content = models.TextField()
     category = models.CharField(max_length=50, blank=True, default="")
-    shortcut = models.CharField(max_length=50, blank=True, default="", unique=True)
+    shortcut = models.CharField(max_length=50, blank=True, default="")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -171,6 +197,13 @@ class CannedResponse(models.Model):
     class Meta:
         db_table = "canned_responses"
         ordering = ["title"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["team", "shortcut"],
+                condition=~models.Q(shortcut=""),
+                name="core_canned_team_shortcut_non_empty_uniq",
+            ),
+        ]
 
     def __str__(self):
         return self.title

@@ -85,10 +85,18 @@ SAMPLE_FAQS = [
 
 
 def seed():
+    from teams.tenant import get_default_team
+
+    team = get_default_team()
+    if team is None:
+        print("No Team row found. Create a team (signup) before seeding.")
+        return
+
     created_count = 0
     for faq in SAMPLE_FAQS:
         embedding = generate_embedding(faq["content"])
         KnowledgeBase.objects.create(
+            team=team,
             content=faq["content"],
             embedding=embedding,
             category=faq["category"],

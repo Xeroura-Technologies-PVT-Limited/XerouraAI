@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import TicketQueue from "@/components/TicketQueue";
-import { API_URL } from "@/lib/api";
+import { API_URL, bearerHeaders } from "@/lib/api";
 
 interface Conversation {
   id: number;
@@ -22,7 +22,7 @@ export default function TicketsPage() {
   const [activeTab, setActiveTab] = useState<string>("all");
 
   useEffect(() => {
-    fetch(`${API_URL}/api/conversations/`)
+    fetch(`${API_URL}/api/conversations/`, { headers: bearerHeaders() })
       .then((res) => res.json())
       .then((data) => {
         setConversations(Array.isArray(data) ? data : data.results || []);

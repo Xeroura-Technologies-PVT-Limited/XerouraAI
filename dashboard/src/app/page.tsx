@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { API_URL } from "@/lib/api";
+import { API_URL, bearerHeaders } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { LandingPage } from "@/components/LandingPage";
 import { OnboardingWalkthrough } from "@/components/OnboardingWalkthrough";
@@ -75,7 +75,9 @@ export default function DashboardPage() {
       return;
     }
     const fetchStats = () => {
-      fetch(`${API_URL}/api/escalations/dashboard/stats/`)
+      fetch(`${API_URL}/api/escalations/dashboard/stats/`, {
+        headers: bearerHeaders(),
+      })
         .then((res) => res.json())
         .then((data) => {
           setStats(data);

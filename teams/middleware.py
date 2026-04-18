@@ -74,13 +74,7 @@ class TeamMiddleware:
 
     @staticmethod
     def _resolve_team_from_user(user):
-        """Look up the user's team via TeamMembership."""
-        from .models import TeamMembership
+        """Look up the user's team (same rules as JWT — prefers WhatsApp-configured team)."""
+        from teams.tenant import get_team_for_user
 
-        membership = (
-            TeamMembership.objects
-            .filter(user=user)
-            .select_related("team")
-            .first()
-        )
-        return membership.team if membership else None
+        return get_team_for_user(user)

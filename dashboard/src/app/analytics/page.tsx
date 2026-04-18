@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { API_URL } from "@/lib/api";
+import { API_URL, bearerHeaders } from "@/lib/api";
 
 interface AnalyticsData {
   ai_resolved: number;
@@ -37,7 +37,9 @@ export default function AnalyticsPage() {
       setData(SANDBOX_DATA);
       return;
     }
-    fetch(`${API_URL}/api/escalations/dashboard/stats/`)
+    fetch(`${API_URL}/api/escalations/dashboard/stats/`, {
+      headers: bearerHeaders(),
+    })
       .then((res) => res.json())
       .then((d) => {
         setData({

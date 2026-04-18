@@ -31,6 +31,11 @@ urlpatterns = [
         name="telegram-webhook",
     ),
     path(
+        "webhooks/telegram/<uuid:team_id>/",
+        TelegramWebhookView.as_view(),
+        name="telegram-webhook-team",
+    ),
+    path(
         "webhooks/messenger/",
         MessengerWebhookView.as_view(),
         name="messenger-webhook",

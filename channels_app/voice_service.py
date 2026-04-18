@@ -272,12 +272,22 @@ def process_speech_for_voice_pipeline(
     """Persist STT, run AI pipeline, return TwiML string."""
     from core.models import Conversation, Message
     from core.views import process_message_internal
+    from teams.tenant import get_default_team
 
     speech = (speech_result or "").strip()
     sender_name = caller_e164
 
+    team = get_default_team()
+    if team is None:
+        logger.error("Voice pipeline: no Team row in database")
+        return twiml_gather_loop(
+            request,
+            prompt_say="Service is not configured. Please try again later.",
+        )
+
     conversation = (
         Conversation.objects.filter(
+            team=team,
             sender_id=caller_e164,
             channel="voice",
         )
@@ -287,6 +297,7 @@ def process_speech_for_voice_pipeline(
     )
     if conversation is None:
         conversation = Conversation.objects.create(
+            team=team,
             sender_id=caller_e164,
             channel="voice",
             sender_name=sender_name,

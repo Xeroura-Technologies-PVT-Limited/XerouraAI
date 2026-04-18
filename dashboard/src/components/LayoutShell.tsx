@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
 import { NotificationBell } from "@/components/NotificationBell";
-import { API_URL } from "@/lib/api";
+import { API_URL, bearerHeaders } from "@/lib/api";
 
 const PUBLIC_PATHS = ["/", "/login", "/signup", "/privacy", "/terms"];
 
@@ -22,7 +22,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
     if (!isAuthenticated || isPublicPage) return;
 
     const poll = () => {
-      fetch(`${API_URL}/api/voice/calls/`)
+      fetch(`${API_URL}/api/voice/calls/`, { headers: bearerHeaders() })
         .then((r) => r.json())
         .then((data) => {
           const n = data?.needs_attention_count;
@@ -65,7 +65,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen">
       {/* Sidebar */}
-      <aside className="w-64 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-r border-slate-200/90 dark:border-slate-700/90 flex flex-col shadow-sm h-screen sticky top-0">
+      <aside className="relative z-30 w-64 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-r border-slate-200/90 dark:border-slate-700/90 flex flex-col shadow-sm h-screen sticky top-0">
         <div className="p-6 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-md shadow-indigo-500/20 ring-1 ring-white/10">
@@ -152,7 +152,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto bg-[#f8fafc] dark:bg-slate-950">{children}</main>
+      <main className="relative z-0 flex-1 overflow-auto bg-[#f8fafc] dark:bg-slate-950">{children}</main>
     </div>
   );
 }

@@ -12,7 +12,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import Team, TeamGmailConfig, TeamMembership, TeamMessengerConfig, TeamTelegramConfig, TeamWhatsAppConfig
+from .models import Team, TeamGmailConfig, TeamMessengerConfig, TeamTelegramConfig, TeamWhatsAppConfig
 
 logger = logging.getLogger(__name__)
 from .serializers import (
@@ -34,13 +34,10 @@ from .serializers import (
 
 
 def _get_team_for_user(user) -> Optional[Team]:
-    """Return the first team the user belongs to (most users have one)."""
-    membership = (
-        TeamMembership.objects.filter(user=user)
-        .select_related("team")
-        .first()
-    )
-    return membership.team if membership else None
+    """Return the user's dashboard team (prefers team with WhatsApp configured)."""
+    from teams.tenant import get_team_for_user as resolve_team
+
+    return resolve_team(user)
 
 
 def _get_tokens_for_user(user) -> dict:

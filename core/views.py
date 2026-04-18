@@ -5,6 +5,8 @@ from django.db.models import Case, Exists, IntegerField, OuterRef, Q, Subquery, 
 from rest_framework import generics, status
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny
+
+from teams.permissions import HasTeamContext
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -37,6 +39,22 @@ from .serializers import (
 logger = logging.getLogger(__name__)
 
 
+def _resolve_team_for_request(request, validated_data: dict | None = None):
+    """Resolve Team from JWT/API key, optional body team_id, or default org."""
+    from teams.models import Team
+    from teams.tenant import get_default_team
+
+    team = getattr(request, "team", None) if request is not None else None
+    if team is not None:
+        return team
+    tid = (validated_data or {}).get("team_id")
+    if tid is not None:
+        t = Team.objects.filter(pk=tid).first()
+        if t is not None:
+            return t
+    return get_default_team()
+
+
 def process_message_internal(
     message: str,
     sender_id: str,
@@ -44,6 +62,7 @@ def process_message_internal(
     channel: str = "webchat",
     *,
     conversation: Conversation | None = None,
+    team=None,
     skip_save_customer_message: bool = False,
     customer_message_metadata: dict | None = None,
     ai_response_metadata: dict | None = None,
@@ -51,15 +70,33 @@ def process_message_internal(
     """Core message processing pipeline. Used by all channels (WhatsApp, Email, WebChat, Voice).
 
     If ``conversation`` is provided, it is used instead of looking up by sender/channel.
+    ``team`` scopes new lookups and creates (required unless ``conversation`` is passed or
+    a default team exists).
     If ``skip_save_customer_message`` is True, the caller must already have persisted the
     customer turn (e.g. voice STT) — only the AI pipeline runs.
 
     Returns dict with: response, classification, conversation_id, escalated
     """
-    if conversation is None:
+    from teams.tenant import get_default_team
+
+    if conversation is not None:
+        if team is not None and team.id != conversation.team_id:
+            logger.warning(
+                "process_message_internal: ignoring mismatched team for conversation %s",
+                conversation.id,
+            )
+        team = conversation.team
+    else:
+        if team is None:
+            team = get_default_team()
+        if team is None:
+            logger.error("process_message_internal: no team context and no default Team row")
+            raise ValueError("No team context for conversation")
+
         # Find existing open conversation or create a new one (race-condition safe)
         conversation = (
             Conversation.objects.filter(
+                team_id=team.id,
                 sender_id=sender_id,
                 channel=channel,
             )
@@ -70,6 +107,7 @@ def process_message_internal(
         if conversation is None:
             try:
                 conversation = Conversation.objects.create(
+                    team=team,
                     sender_id=sender_id,
                     channel=channel,
                     sender_name=sender_name or sender_id,
@@ -78,13 +116,15 @@ def process_message_internal(
                 # Race condition: another request created it first
                 conversation = (
                     Conversation.objects.filter(
-                        sender_id=sender_id, channel=channel,
+                        team_id=team.id,
+                        sender_id=sender_id,
+                        channel=channel,
                     )
                     .exclude(status="resolved")
                     .order_by("-created_at")
                     .first()
                 )
-    elif (
+    if (
         conversation.sender_id != sender_id
         or conversation.channel != channel
     ):
@@ -269,6 +309,7 @@ def process_message_internal(
     query_embedding = generate_embedding(message)
     knowledge_chunks = search_knowledge_base(
         query_embedding=query_embedding,
+        team_id=conversation.team_id,
         category=classification.get("category"),
         limit=3,
     )
@@ -393,9 +434,17 @@ class ProcessMessageView(APIView):
         channel = data["channel"]
         sender_name = data.get("sender_name", "")
 
+        team = _resolve_team_for_request(request, data)
+        if team is None:
+            return Response(
+                {"error": "No team context. Create a team, sign in, or pass team_id."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         # 1. Find existing open conversation or create a new one (race-condition safe)
         conversation = (
             Conversation.objects.filter(
+                team_id=team.id,
                 sender_id=sender_id,
                 channel=channel,
             )
@@ -406,6 +455,7 @@ class ProcessMessageView(APIView):
         if conversation is None:
             try:
                 conversation = Conversation.objects.create(
+                    team=team,
                     sender_id=sender_id,
                     channel=channel,
                     sender_name=sender_name or sender_id,
@@ -413,7 +463,9 @@ class ProcessMessageView(APIView):
             except Exception:
                 conversation = (
                     Conversation.objects.filter(
-                        sender_id=sender_id, channel=channel,
+                        team_id=team.id,
+                        sender_id=sender_id,
+                        channel=channel,
                     )
                     .exclude(status="resolved")
                     .order_by("-created_at")
@@ -587,6 +639,7 @@ class ProcessMessageView(APIView):
         query_embedding = generate_embedding(message)
         knowledge_chunks = search_knowledge_base(
             query_embedding=query_embedding,
+            team_id=conversation.team_id,
             category=category,
             limit=3,
         )
@@ -706,20 +759,26 @@ class ProcessMessageView(APIView):
 class KnowledgeBaseListCreateView(generics.ListCreateAPIView):
     """List all knowledge base entries or add a new one."""
 
-    queryset = KnowledgeBase.objects.all()
+    permission_classes = [HasTeamContext]
     serializer_class = KnowledgeBaseSerializer
+
+    def get_queryset(self):
+        return KnowledgeBase.objects.filter(team=self.request.team).order_by("-created_at")
 
     def perform_create(self, serializer):
         content = serializer.validated_data["content"]
         embedding = generate_embedding(content)
-        serializer.save(embedding=embedding)
+        serializer.save(team=self.request.team, embedding=embedding)
 
 
 class ConversationListView(generics.ListAPIView):
-    """List all conversations."""
+    """List conversations for the authenticated user's team."""
 
-    queryset = Conversation.objects.all()
+    permission_classes = [HasTeamContext]
     serializer_class = ConversationListSerializer
+
+    def get_queryset(self):
+        return Conversation.objects.filter(team=self.request.team).prefetch_related("tags")
 
 
 class ToggleHumanOnlyView(APIView):
@@ -728,11 +787,11 @@ class ToggleHumanOnlyView(APIView):
     When enabled, AI will not respond to new messages — only human agents can reply.
     """
 
-    permission_classes = [AllowAny]
+    permission_classes = [HasTeamContext]
 
     def post(self, request, pk):
         try:
-            conversation = Conversation.objects.get(pk=pk)
+            conversation = Conversation.objects.get(pk=pk, team=request.team)
         except Conversation.DoesNotExist:
             return Response(
                 {"error": "Conversation not found."},
@@ -762,7 +821,7 @@ class VoiceCallsQueueView(APIView):
     and the dedicated Calls page.
     """
 
-    permission_classes = [AllowAny]
+    permission_classes = [HasTeamContext]
 
     def get(self, request):
         from escalation.models import Escalation
@@ -780,7 +839,7 @@ class VoiceCallsQueueView(APIView):
             resolved=False,
         )
         qs = (
-            Conversation.objects.filter(channel="voice")
+            Conversation.objects.filter(team=request.team, channel="voice")
             .exclude(status="resolved")
             .annotate(_last_customer_preview=latest_customer)
             .annotate(_has_open_escalation=Exists(open_escalation))
@@ -813,8 +872,13 @@ class VoiceCallsQueueView(APIView):
 class ConversationDetailView(generics.RetrieveAPIView):
     """Get a single conversation with all its messages."""
 
-    queryset = Conversation.objects.prefetch_related("messages", "tags", "internal_notes").all()
+    permission_classes = [HasTeamContext]
     serializer_class = ConversationSerializer
+
+    def get_queryset(self):
+        return Conversation.objects.filter(team=self.request.team).prefetch_related(
+            "messages", "tags", "internal_notes"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -825,27 +889,34 @@ class ConversationDetailView(generics.RetrieveAPIView):
 class TagListCreateView(generics.ListCreateAPIView):
     """List all tags or create a new one."""
 
-    queryset = Tag.objects.all()
     serializer_class = TagSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [HasTeamContext]
+
+    def get_queryset(self):
+        return Tag.objects.filter(team=self.request.team)
+
+    def perform_create(self, serializer):
+        serializer.save(team=self.request.team)
 
 
 class TagDeleteView(generics.DestroyAPIView):
     """Delete a tag by ID."""
 
-    queryset = Tag.objects.all()
     serializer_class = TagSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [HasTeamContext]
+
+    def get_queryset(self):
+        return Tag.objects.filter(team=self.request.team)
 
 
 class InternalNoteCreateView(APIView):
     """Create an internal note on a conversation."""
 
-    permission_classes = [AllowAny]
+    permission_classes = [HasTeamContext]
 
     def post(self, request, conversation_id):
         try:
-            conversation = Conversation.objects.get(pk=conversation_id)
+            conversation = Conversation.objects.get(pk=conversation_id, team=request.team)
         except Conversation.DoesNotExist:
             return Response(
                 {"error": "Conversation not found."},
@@ -861,17 +932,24 @@ class InternalNoteCreateView(APIView):
 class CannedResponseListCreateView(generics.ListCreateAPIView):
     """List all canned responses or create a new one."""
 
-    queryset = CannedResponse.objects.filter(is_active=True)
     serializer_class = CannedResponseSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [HasTeamContext]
+
+    def get_queryset(self):
+        return CannedResponse.objects.filter(team=self.request.team, is_active=True)
+
+    def perform_create(self, serializer):
+        serializer.save(team=self.request.team)
 
 
 class CannedResponseUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
     """Update or delete a canned response."""
 
-    queryset = CannedResponse.objects.all()
     serializer_class = CannedResponseSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [HasTeamContext]
+
+    def get_queryset(self):
+        return CannedResponse.objects.filter(team=self.request.team)
 
 
 class ConversationSearchView(APIView):
@@ -880,7 +958,7 @@ class ConversationSearchView(APIView):
     Query param: ?q=<search term>
     """
 
-    permission_classes = [AllowAny]
+    permission_classes = [HasTeamContext]
 
     def get(self, request):
         query = request.query_params.get("q", "").strip()
@@ -891,10 +969,12 @@ class ConversationSearchView(APIView):
             )
 
         search_query = SearchQuery(query)
+        team = request.team
 
         # Find conversations where messages match the search query
         message_conversation_ids = (
-            Message.objects.annotate(search=SearchVector("content"))
+            Message.objects.filter(conversation__team=team)
+            .annotate(search=SearchVector("content"))
             .filter(search=search_query)
             .values_list("conversation_id", flat=True)
             .distinct()
@@ -902,7 +982,8 @@ class ConversationSearchView(APIView):
 
         # Find conversations where sender_name matches
         sender_conversation_ids = (
-            Conversation.objects.annotate(search=SearchVector("sender_name"))
+            Conversation.objects.filter(team=team)
+            .annotate(search=SearchVector("sender_name"))
             .filter(search=search_query)
             .values_list("id", flat=True)
             .distinct()
@@ -912,7 +993,7 @@ class ConversationSearchView(APIView):
         all_ids = set(message_conversation_ids) | set(sender_conversation_ids)
 
         conversations = (
-            Conversation.objects.filter(id__in=all_ids)
+            Conversation.objects.filter(team=team, id__in=all_ids)
             .prefetch_related("tags")
             .order_by("-updated_at")
         )
@@ -932,7 +1013,7 @@ class BulkActionView(APIView):
         }
     """
 
-    permission_classes = [AllowAny]
+    permission_classes = [HasTeamContext]
 
     def post(self, request):
         conversation_ids = request.data.get("conversation_ids", [])
@@ -950,7 +1031,9 @@ class BulkActionView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        conversations = Conversation.objects.filter(id__in=conversation_ids)
+        conversations = Conversation.objects.filter(
+            id__in=conversation_ids, team=request.team
+        )
         matched_count = conversations.count()
 
         if matched_count == 0:
@@ -975,7 +1058,7 @@ class BulkActionView(APIView):
                 )
 
             try:
-                tag = Tag.objects.get(pk=tag_id)
+                tag = Tag.objects.get(pk=tag_id, team=request.team)
             except Tag.DoesNotExist:
                 return Response(
                     {"error": "Tag not found."},
@@ -1008,7 +1091,7 @@ class KnowledgeBaseUploadView(APIView):
         - category: one of billing, technical, account, general (default: general)
     """
 
-    permission_classes = [AllowAny]
+    permission_classes = [HasTeamContext]
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
@@ -1054,6 +1137,7 @@ class KnowledgeBaseUploadView(APIView):
         for chunk in chunks:
             embedding = generate_embedding(chunk)
             KnowledgeBase.objects.create(
+                team=request.team,
                 content=chunk,
                 embedding=embedding,
                 category=category,

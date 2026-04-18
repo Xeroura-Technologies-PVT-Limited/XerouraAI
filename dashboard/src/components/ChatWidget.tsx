@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { WS_URL } from "@/lib/api";
+import { WS_URL, WIDGET_TEAM_ID } from "@/lib/api";
 
 interface ChatMessage {
   id: number;
@@ -22,7 +22,10 @@ export default function ChatWidget() {
   useEffect(() => {
     if (!isOpen) return;
 
-    const ws = new WebSocket(`${WS_URL}/ws/chat/`);
+    const teamQs = WIDGET_TEAM_ID
+      ? `?team=${encodeURIComponent(WIDGET_TEAM_ID)}`
+      : "";
+    const ws = new WebSocket(`${WS_URL}/ws/chat/${teamQs}`);
     wsRef.current = ws;
 
     ws.onopen = () => setConnected(true);

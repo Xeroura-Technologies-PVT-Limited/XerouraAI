@@ -35,7 +35,7 @@ export function NotificationBell() {
   }
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative z-50">
       {/* Bell button */}
       <button
         onClick={() => setOpen(!open)}
@@ -54,7 +54,7 @@ export function NotificationBell() {
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute bottom-full left-0 mb-2 w-80 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-xl z-50 overflow-hidden">
+        <div className="absolute bottom-full left-0 mb-2 w-80 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-xl z-[100] overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-slate-700">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Notifications</h3>

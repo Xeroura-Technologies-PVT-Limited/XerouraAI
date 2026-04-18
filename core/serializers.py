@@ -15,13 +15,14 @@ class KnowledgeBaseSerializer(serializers.ModelSerializer):
         model = KnowledgeBase
         fields = [
             "id",
+            "team_id",
             "content",
             "category",
             "metadata",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "team_id", "created_at", "updated_at"]
 
 
 class MessageSerializer(serializers.ModelSerializer):
@@ -34,8 +35,8 @@ class MessageSerializer(serializers.ModelSerializer):
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
-        fields = ["id", "name", "color", "created_at"]
-        read_only_fields = ["id", "created_at"]
+        fields = ["id", "team_id", "name", "color", "created_at"]
+        read_only_fields = ["id", "team_id", "created_at"]
 
 
 class InternalNoteSerializer(serializers.ModelSerializer):
@@ -50,6 +51,7 @@ class CannedResponseSerializer(serializers.ModelSerializer):
         model = CannedResponse
         fields = [
             "id",
+            "team_id",
             "title",
             "content",
             "category",
@@ -58,7 +60,7 @@ class CannedResponseSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "team_id", "created_at", "updated_at"]
 
 
 class ConversationSerializer(serializers.ModelSerializer):
@@ -71,6 +73,7 @@ class ConversationSerializer(serializers.ModelSerializer):
         model = Conversation
         fields = [
             "id",
+            "team_id",
             "channel",
             "sender_id",
             "sender_name",
@@ -85,7 +88,7 @@ class ConversationSerializer(serializers.ModelSerializer):
             "internal_notes",
             "escalation_id",
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "team_id", "created_at", "updated_at"]
 
     def get_escalation_id(self, obj) -> str | None:
         escalation = obj.escalations.filter(resolved=False).first()
@@ -148,6 +151,7 @@ class ConversationListSerializer(serializers.ModelSerializer):
         model = Conversation
         fields = [
             "id",
+            "team_id",
             "channel",
             "sender_id",
             "sender_name",
@@ -158,7 +162,7 @@ class ConversationListSerializer(serializers.ModelSerializer):
             "message_count",
             "tags",
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "team_id", "created_at", "updated_at"]
 
 
 class ConversationSearchSerializer(serializers.ModelSerializer):
@@ -169,6 +173,7 @@ class ConversationSearchSerializer(serializers.ModelSerializer):
         model = Conversation
         fields = [
             "id",
+            "team_id",
             "channel",
             "sender_id",
             "sender_name",
@@ -179,7 +184,7 @@ class ConversationSearchSerializer(serializers.ModelSerializer):
             "message_count",
             "tags",
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "team_id", "created_at", "updated_at"]
 
 
 class ProcessMessageSerializer(serializers.Serializer):
@@ -187,3 +192,4 @@ class ProcessMessageSerializer(serializers.Serializer):
     sender_id = serializers.CharField()
     channel = serializers.ChoiceField(choices=["whatsapp", "email", "webchat", "telegram", "messenger", "instagram"])
     sender_name = serializers.CharField(required=False, default="")
+    team_id = serializers.UUIDField(required=False, allow_null=True)

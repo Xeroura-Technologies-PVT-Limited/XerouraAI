@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import ConversationThread from "@/components/ConversationThread";
 import AISidebar from "@/components/AISidebar";
-import { API_URL } from "@/lib/api";
+import { API_URL, bearerHeaders } from "@/lib/api";
 
 interface Message {
   id: string;
@@ -60,7 +60,7 @@ export default function TicketDetailPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const fetchTicket = useCallback(() => {
-    fetch(`${API_URL}/api/conversations/${id}/`)
+    fetch(`${API_URL}/api/conversations/${id}/`, { headers: bearerHeaders() })
       .then((res) => res.json())
       .then((data) => {
         setTicket(data);
@@ -81,7 +81,7 @@ export default function TicketDetailPage() {
     try {
       const res = await fetch(`${API_URL}/api/conversations/${ticket.id}/reply/`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...bearerHeaders() },
         body: JSON.stringify({ message: replyText }),
       });
       if (res.ok) {
@@ -99,8 +99,8 @@ export default function TicketDetailPage() {
     try {
       const res = await fetch(`${API_URL}/api/escalations/${ticket.escalation_id}/resolve/`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ response: replyText }),
+        headers: { "Content-Type": "application/json", ...bearerHeaders() },
+        body: JSON.stringify({ response: replyText, agent_name: "Agent" }),
       });
       if (res.ok) {
         setReplyText("");
@@ -121,7 +121,7 @@ export default function TicketDetailPage() {
     try {
       const res = await fetch(`${API_URL}/api/conversations/${ticket.id}/toggle-human-only/`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...bearerHeaders() },
         body: JSON.stringify({ human_only: !ticket.human_only }),
       });
       if (res.ok) fetchTicket();

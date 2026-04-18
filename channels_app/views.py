@@ -104,12 +104,19 @@ class WhatsAppWebhookView(APIView):
         try:
             from core.models import Conversation
             from core.views import process_message_internal
+            from teams.tenant import get_default_team, team_for_whatsapp_phone_number_id
+
+            team = team_for_whatsapp_phone_number_id(wa_phone_number_id) or get_default_team()
+            if team is None:
+                logger.error("WhatsApp: no team for phone_number_id=%s", wa_phone_number_id)
+                return Response(status=status.HTTP_200_OK)
 
             result = process_message_internal(
                 message=unified_msg.message,
                 sender_id=unified_msg.sender_id,
                 sender_name=unified_msg.sender_name,
                 channel="whatsapp",
+                team=team,
             )
 
             conv_id = result.get("conversation_id")
@@ -216,12 +223,19 @@ class EmailWebhookView(APIView):
 
         try:
             from core.views import process_message_internal
+            from teams.tenant import get_default_team
+
+            team = get_default_team()
+            if team is None:
+                logger.error("Email handler: no Team row — cannot scope conversation")
+                return
 
             result = process_message_internal(
                 message=unified_msg.message,
                 sender_id=unified_msg.sender_id,
                 sender_name=unified_msg.sender_name,
                 channel="email",
+                team=team,
             )
 
             # Send reply
@@ -284,12 +298,19 @@ class GmailPollView(APIView):
                         continue
 
                     from core.views import process_message_internal
+                    from teams.tenant import get_default_team
+
+                    team = getattr(request, "team", None) or get_default_team()
+                    if team is None:
+                        logger.error("Gmail poll: no team context")
+                        continue
 
                     result = process_message_internal(
                         message=unified_msg.message,
                         sender_id=unified_msg.sender_id,
                         sender_name=unified_msg.sender_name,
                         channel="email",
+                        team=team,
                     )
 
                     subject = unified_msg.metadata.get(
@@ -343,8 +364,12 @@ class TelegramWebhookView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
 
-    def post(self, request):
-        """Handle incoming Telegram update."""
+    def post(self, request, team_id=None):
+        """Handle incoming Telegram update.
+
+        Use ``/api/webhooks/telegram/<team_uuid>/`` so the bot is scoped to that team.
+        The legacy ``/api/webhooks/telegram/`` path uses the first/default team.
+        """
         unified_msg = parse_telegram_update(request.data)
 
         if unified_msg is None:
@@ -358,20 +383,36 @@ class TelegramWebhookView(APIView):
             unified_msg.content[:50],
         )
 
+        bot_token = None
         try:
             from core.views import process_message_internal
+            from teams.models import TeamTelegramConfig
+            from teams.tenant import get_default_team, team_for_telegram_team_id
+
+            if team_id is not None:
+                team = team_for_telegram_team_id(team_id)
+            else:
+                team = get_default_team()
+            if team is None:
+                logger.error("Telegram: no team context (set webhook URL with team UUID)")
+                return Response({"status": "ok"}, status=status.HTTP_200_OK)
+
+            cfg = TeamTelegramConfig.objects.filter(team=team, is_active=True).first()
+            bot_token = cfg.bot_token if cfg else None
 
             result = process_message_internal(
                 message=unified_msg.content,
                 sender_id=unified_msg.sender_id,
                 sender_name=unified_msg.sender_name,
                 channel="telegram",
+                team=team,
             )
 
             if result.get("response"):
                 send_telegram_message(
                     chat_id=unified_msg.sender_id,
                     message=result["response"],
+                    bot_token=bot_token,
                 )
 
         except Exception as exc:
@@ -379,6 +420,7 @@ class TelegramWebhookView(APIView):
             send_telegram_message(
                 chat_id=unified_msg.sender_id,
                 message="Sorry, I'm having trouble processing your request. Please try again.",
+                bot_token=bot_token,
             )
 
         return Response({"status": "ok"}, status=status.HTTP_200_OK)
@@ -460,12 +502,20 @@ class MessengerWebhookView(APIView):
 
         try:
             from core.views import process_message_internal
+            from teams.tenant import get_default_team, team_for_messenger_page_id
+
+            page_id = (unified_msg.metadata or {}).get("page_id") or ""
+            team = team_for_messenger_page_id(page_id) or get_default_team()
+            if team is None:
+                logger.error("Messenger: no team for page_id=%s", page_id)
+                return Response(status=status.HTTP_200_OK)
 
             result = process_message_internal(
                 message=unified_msg.message,
                 sender_id=unified_msg.sender_id,
                 sender_name=unified_msg.sender_name,
                 channel=unified_msg.channel,
+                team=team,
             )
 
             # Send AI response back — unless human_only mode (no response)
