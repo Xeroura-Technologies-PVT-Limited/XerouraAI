@@ -6,6 +6,13 @@ import uuid
 from django.db import migrations, models
 
 
+def enable_pgvector_if_postgres(apps, schema_editor):
+    if schema_editor.connection.vendor != "postgresql":
+        return
+    with schema_editor.connection.cursor() as cursor:
+        cursor.execute("CREATE EXTENSION IF NOT EXISTS vector;")
+
+
 class Migration(migrations.Migration):
 
     initial = True
@@ -14,6 +21,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RunPython(enable_pgvector_if_postgres, migrations.RunPython.noop),
         migrations.CreateModel(
             name='Conversation',
             fields=[
