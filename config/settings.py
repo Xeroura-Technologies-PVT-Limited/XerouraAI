@@ -9,6 +9,8 @@ env = environ.Env(
     DEBUG=(bool, False),
     ALLOWED_HOSTS=(list, ["*"]),
     REDIS_URL=(str, "redis://redis:6379/0"),
+    # When False and DEBUG is False, only literal ALLOWED_HOSTS from .env are used.
+    ALLOW_NGROK_SUBDOMAINS=(bool, False),
 )
 
 env.read_env(os.path.join(BASE_DIR, ".env"))
@@ -17,7 +19,33 @@ SECRET_KEY = env("SECRET_KEY", default="change-me-in-production")
 
 DEBUG = env("DEBUG")
 
-ALLOWED_HOSTS = env("ALLOWED_HOSTS")
+
+def _normalized_allowed_hosts(raw: list | str | tuple) -> list[str]:
+    if isinstance(raw, str):
+        parts = [p.strip() for p in raw.split(",")]
+    else:
+        parts = [str(p).strip() for p in raw]
+    return [p for p in parts if p]
+
+
+# Ngrok free URLs change every run; Django accepts any *.suffix when suffix is listed
+# with a leading dot (e.g. .ngrok-free.app). Trailing commas in .env can inject "" — drop them.
+_NGROK_WILDCARD_SUFFIXES = (
+    ".ngrok-free.app",
+    ".ngrok-free.dev",
+    ".ngrok.io",
+    ".ngrok.app",
+)
+
+_raw_allowed = env("ALLOWED_HOSTS")
+_hosts = _normalized_allowed_hosts(_raw_allowed)
+
+if "*" in _hosts:
+    ALLOWED_HOSTS = ["*"]
+elif DEBUG or env("ALLOW_NGROK_SUBDOMAINS"):
+    ALLOWED_HOSTS = list(dict.fromkeys([*_hosts, *_NGROK_WILDCARD_SUFFIXES]))
+else:
+    ALLOWED_HOSTS = _hosts
 
 # ---------------------------------------------------------------------------
 # Application definition
