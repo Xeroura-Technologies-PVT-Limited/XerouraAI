@@ -11,6 +11,8 @@ env = environ.Env(
     REDIS_URL=(str, "redis://redis:6379/0"),
     # When False and DEBUG is False, only literal ALLOWED_HOSTS from .env are used.
     ALLOW_NGROK_SUBDOMAINS=(bool, False),
+    # Cloud Run / load balancers terminate TLS; set True in production on GCP.
+    TRUST_X_FORWARDED_PROTO=(bool, False),
 )
 
 env.read_env(os.path.join(BASE_DIR, ".env"))
@@ -46,6 +48,9 @@ elif DEBUG or env("ALLOW_NGROK_SUBDOMAINS"):
     ALLOWED_HOSTS = list(dict.fromkeys([*_hosts, *_NGROK_WILDCARD_SUFFIXES]))
 else:
     ALLOWED_HOSTS = _hosts
+
+if env("TRUST_X_FORWARDED_PROTO"):
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # ---------------------------------------------------------------------------
 # Application definition
