@@ -62,7 +62,6 @@ Built with Django, Claude AI (Haiku + Sonnet), PostgreSQL + pgvector, and Next.j
 | WhatsApp | WhatsApp Cloud API (Meta) | Free (24h window) |
 | Telegram | Telegram Bot API | Free |
 | Email | Gmail API | Free |
-| **Total** | | **~$85/mo** |
 
 ---
 
@@ -429,6 +428,3 @@ xeroura-ai/
 ---
 
 
-## Star History
-
-If this helped you, give it a star on GitHub!
